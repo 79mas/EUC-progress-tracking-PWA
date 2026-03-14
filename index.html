@@ -767,15 +767,16 @@ $('btn-signout').onclick = signOut;
 // ─── DASHBOARD ───────────────────────────────────────
 function renderDashboard() {
   const ws=weekStart(), ms=monthStart(), ys=yearStart();
-  const all=S.rides.reduce((s,r)=>s+(r.km||0),0);
-  const allYear=S.rides.filter(r=>r.date>=ys).reduce((s,r)=>s+(r.km||0),0);
-  const wkKm=S.rides.filter(r=>r.date.slice(0,10)>=ws).reduce((s,r)=>s+(r.km||0),0);
-  const moKm=S.rides.filter(r=>r.date.slice(0,10)>=ms).reduce((s,r)=>s+(r.km||0),0);
+  const rides=dashRides();
+  const all=rides.reduce((s,r)=>s+(r.km||0),0);
+  const allYear=rides.filter(r=>r.date>=ys).reduce((s,r)=>s+(r.km||0),0);
+  const wkKm=rides.filter(r=>r.date.slice(0,10)>=ws).reduce((s,r)=>s+(r.km||0),0);
+  const moKm=rides.filter(r=>r.date.slice(0,10)>=ms).reduce((s,r)=>s+(r.km||0),0);
   $('d-total').textContent=fmt(all,1);
   $('d-year').textContent=fmt(allYear,1);
   $('d-week').textContent=fmt(wkKm,1)+' km';
   $('d-month').textContent=fmt(moKm,1)+' km';
-  const dates=S.rides.map(r=>r.date.slice(0,10)).sort();
+  renderModelPicker();
   renderAvgWidget();
 
   const last=[...rides].sort((a,b)=>b.date.localeCompare(a.date))[0];
