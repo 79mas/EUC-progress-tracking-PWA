@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="EUC Tracker"/>
 <title>EUC Tracker</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 56'><circle cx='28' cy='28' r='26' fill='%230a0a0f' stroke='%2300e5ff' stroke-width='2'/><circle cx='28' cy='28' r='6' fill='%2300e5ff'/></svg>"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
@@ -593,13 +594,13 @@ input[type=number]{-moz-appearance:textfield}
 
 // ─── CONFIG ─────────────────────────────────────────
 // Fill in your Google Client ID here after creating it
-const CLIENT_ID    = localStorage.getItem('euc_client_id') || '';
-const TEMPLATE_URL = localStorage.getItem('euc_template')  || '';
+const CLIENT_ID    = '389877958639-510o4t4f22b0h2o2ms27n8eeovhkc284.apps.googleusercontent.com';
+const TEMPLATE_URL = 'https://docs.google.com/spreadsheets/d/1ujKLLtxDLpiThQz6ZCgSaoXtnB_Q_jx7h79v5Je18HM/copy';
 
 // ─── STATE ──────────────────────────────────────────
 const S = {
   user:      null,
-  apiUrl:    localStorage.getItem('euc_api') || '',
+  apiUrl:    localStorage.getItem('euc_api') || 'https://script.google.com/macros/s/AKfycbyY_8rpbqb3pAQ3z-04YdEe-ICHw50IrdM_9te-ZnekjIKGNWbLnHyf9gVnhaFZtZMOjQ/exec',
   rides:     [],
   models:    [],
   lastModel: localStorage.getItem('euc_last') || '',
