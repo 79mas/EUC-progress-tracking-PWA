@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="EUC Tracker" />
+  <meta name="description" content="Track your Electric Unicycle rides and stats" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>EUC Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ─── SPLASH SCREEN ─── -->
+<div id="splash">
+  <div class="splash-ring"></div>
+  <div class="splash-ring splash-ring--2"></div>
+  <div class="splash-logo">
+    <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+      <circle cx="28" cy="28" r="26" stroke="#00e5ff" stroke-width="2" opacity="0.3"/>
+      <circle cx="28" cy="28" r="18" stroke="#00e5ff" stroke-width="1.5"/>
+      <circle cx="28" cy="28" r="6" fill="#00e5ff"/>
+      <line x1="28" y1="4" x2="28" y2="18" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+      <line x1="28" y1="38" x2="28" y2="52" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <p class="splash-title">EUC TRACKER</p>
+  <p class="splash-sub">LOADING RIDE DATA…</p>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div id="toast"></div>
+
+<!-- ─── APP WRAPPER ─── -->
+<div id="app" class="hidden">
+
+  <!-- ══════════════════════════════════
+       TAB: DASHBOARD
+  ══════════════════════════════════ -->
+  <section id="tab-dashboard" class="tab-section active">
+    <header class="page-header">
+      <span class="page-header__label">OVERVIEW</span>
+      <h1 class="page-header__title">Dashboard</h1>
+      <button class="icon-btn" id="btn-sync" title="Sync data">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="dash-hero">
+      <div class="dash-hero__metric">
+        <span class="metric-val" id="dash-total-km">—</span>
+        <span class="metric-unit">km total</span>
+      </div>
+      <div class="dash-hero__sub">
+        <div class="mini-stat">
+          <span class="mini-stat__val" id="dash-today-km">—</span>
+          <span class="mini-stat__label">Today</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat__val" id="dash-week-km">—</span>
+          <span class="mini-stat__label">This Week</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat__val" id="dash-avg-km">—</span>
+          <span class="mini-stat__label">km/day avg</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">LAST RIDE</div>
+    <div class="card" id="dash-last-ride">
+      <p class="card__empty">No rides yet. Add your first entry!</p>
+    </div>
+
+    <div class="section-label">FLEET STATUS</div>
+    <div id="dash-fleet" class="fleet-grid"></div>
+
+    <div class="section-label">THIS WEEK</div>
+    <div class="card chart-card">
+      <canvas id="dash-week-chart" height="140"></canvas>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════
+       TAB: NEW ENTRY
+  ══════════════════════════════════ -->
+  <section id="tab-entry" class="tab-section">
+    <header class="page-header">
+      <span class="page-header__label">LOG RIDE</span>
+      <h1 class="page-header__title">New Entry</h1>
+    </header>
+
+    <div class="entry-form">
+      <!-- Model -->
+      <div class="form-group">
+        <label class="form-label">EUC Model</label>
+        <div id="model-selector" class="model-selector"></div>
+        <p class="form-hint" id="model-hint"></p>
+      </div>
+
+      <!-- Date/Time -->
+      <div class="form-group">
+        <label class="form-label" for="entry-datetime">Date & Time</label>
+        <input type="datetime-local" id="entry-datetime" class="form-input" />
+      </div>
+
+      <!-- ODM -->
+      <div class="form-group">
+        <label class="form-label" for="entry-odm">Odometer Reading (km)</label>
+        <div class="odm-wrapper">
+          <input type="number" id="entry-odm" class="form-input form-input--odm"
+            inputmode="numeric" pattern="[0-9]*" placeholder="0" min="0" step="0.1" />
+          <span class="odm-unit">km</span>
+        </div>
+        <p class="form-hint" id="odm-hint"></p>
+      </div>
+
+      <!-- Remarks -->
+      <div class="form-group">
+        <label class="form-label" for="entry-remarks">Remarks</label>
+        <textarea id="entry-remarks" class="form-input form-textarea" placeholder="Route, weather, battery…" rows="3"></textarea>
+      </div>
+
+      <!-- Preview -->
+      <div class="entry-preview" id="entry-preview" style="display:none">
+        <div class="entry-preview__row">
+          <span>Trip distance</span>
+          <strong id="prev-trip">—</strong>
+        </div>
+        <div class="entry-preview__row">
+          <span>New total</span>
+          <strong id="prev-total">—</strong>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-submit">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Ride
+      </button>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════
+       TAB: GARAGE
+  ══════════════════════════════════ -->
+  <section id="tab-garage" class="tab-section">
+    <header class="page-header">
+      <span class="page-header__label">FLEET</span>
+      <h1 class="page-header__title">Garage</h1>
+    </header>
+
+    <div class="section-label">ADD NEW EUC</div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label" for="garage-name">Model Name</label>
+        <input type="text" id="garage-name" class="form-input" placeholder="e.g. Veteran Sherman S" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="garage-odm">Starting Odometer (km)</label>
+        <input type="number" id="garage-odm" class="form-input" inputmode="numeric"
+          placeholder="0 for new wheel" min="0" step="0.1" />
+        <p class="form-hint">Enter current ODM for used EUCs</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="garage-date">Date Added</label>
+        <input type="date" id="garage-date" class="form-input" />
+      </div>
+      <button class="btn-primary" id="btn-add-euc">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add to Garage
+      </button>
+    </div>
+
+    <div class="section-label">MY FLEET</div>
+    <div id="garage-list" class="garage-list"></div>
+  </section>
+
+  <!-- ══════════════════════════════════
+       TAB: ANALYTICS
+  ══════════════════════════════════ -->
+  <section id="tab-analytics" class="tab-section">
+    <header class="page-header">
+      <span class="page-header__label">INSIGHTS</span>
+      <h1 class="page-header__title">Analytics</h1>
+    </header>
+
+    <!-- Filters -->
+    <div class="filter-panel">
+      <div class="filter-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">From</label>
+          <input type="date" id="filter-from" class="form-input form-input--sm" />
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">To</label>
+          <input type="date" id="filter-to" class="form-input form-input--sm" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Models</label>
+        <div id="filter-models" class="model-checks"></div>
+      </div>
+      <div class="filter-summary">
+        <span id="filter-summary-text">All time · All models</span>
+        <button class="btn-ghost" id="btn-reset-filters">Reset</button>
+      </div>
+    </div>
+
+    <!-- KPI row -->
+    <div class="analytics-kpis" id="analytics-kpis">
+      <div class="kpi-card">
+        <span class="kpi-val" id="a-total">—</span>
+        <span class="kpi-label">Total km</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" id="a-rides">—</span>
+        <span class="kpi-label">Rides</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" id="a-avg">—</span>
+        <span class="kpi-label">Avg km/ride</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" id="a-best">—</span>
+        <span class="kpi-label">Best ride</span>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="section-label">RIDE DYNAMICS</div>
+    <div class="card chart-card">
+      <canvas id="chart-dynamics" height="200"></canvas>
+    </div>
+
+    <div class="section-label">CUMULATIVE GROWTH</div>
+    <div class="card chart-card">
+      <canvas id="chart-cumulative" height="200"></canvas>
+    </div>
+
+    <div class="section-label">SEASONALITY</div>
+    <div class="card chart-card">
+      <canvas id="chart-season" height="200"></canvas>
+    </div>
+  </section>
+
+  <!-- ─── BOTTOM NAV ─── -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="dashboard">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+      </svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-item nav-item--add" data-tab="entry">
+      <div class="nav-add-ring">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </div>
+      <span>New Ride</span>
+    </button>
+    <button class="nav-item" data-tab="garage">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>Garage</span>
+    </button>
+    <button class="nav-item" data-tab="analytics">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span>Analytics</span>
+    </button>
+  </nav>
+
+</div><!-- /#app -->
+
+<!-- Settings Modal (API URL) -->
+<div id="settings-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2 class="modal-title">⚙️ Connect Google Sheets</h2>
+    <p class="modal-desc">Paste your Google Apps Script Web App URL below to enable cloud sync.</p>
+    <input type="url" id="api-url-input" class="form-input" placeholder="https://script.google.com/macros/s/…/exec" />
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btn-modal-cancel">Cancel</button>
+      <button class="btn-primary" id="btn-modal-save">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
