@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="EUC Tracker"/>
+<title>EUC Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer
+  onload="window._gisReady=true;window.dispatchEvent(new Event('gis'))"></script>
+<style>
+:root{
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#18181f;--card:#14141c;
+  --border:rgba(0,229,255,.12);--soft:rgba(255,255,255,.06);
+  --cyan:#00e5ff;--cdim:rgba(0,229,255,.12);--cglow:rgba(0,229,255,.28);
+  --amber:#ffb800;--green:#00ff87;--red:#ff4d6d;
+  --t1:#f0f0f8;--t2:#8888aa;--t3:#44445a;
+  --nav:68px;--safe:env(safe-area-inset-bottom,0px);
+  --r:12px;--F:'Exo 2',sans-serif;--M:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);color:var(--t1);font-family:var(--F);-webkit-text-size-adjust:100%}
+body{min-height:100dvh;overflow-x:hidden}
+button{cursor:pointer;font-family:var(--F)}
+input,textarea{font-family:var(--F);color-scheme:dark}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .5s,visibility .5s}
+#splash.out{opacity:0;visibility:hidden;pointer-events:none}
+.sr{position:absolute;border-radius:50%;border:1px solid var(--cyan);animation:pulse 2s ease-out infinite}
+.sr:nth-child(1){width:120px;height:120px;opacity:.15}
+.sr:nth-child(2){width:200px;height:200px;opacity:.07;animation-delay:.4s}
+@keyframes pulse{0%{transform:scale(.8);opacity:.2}100%{transform:scale(1.4);opacity:0}}
+.slogo{z-index:1;animation:spin 6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.stitle{font-size:20px;font-weight:900;letter-spacing:6px;color:var(--cyan);z-index:1}
+.ssub{font-family:var(--M);font-size:11px;color:var(--t2);letter-spacing:3px;z-index:1;animation:blink 1.2s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(var(--nav) + 12px + var(--safe));left:50%;transform:translateX(-50%) translateY(14px);background:var(--bg3);border:1px solid var(--soft);color:var(--t1);padding:10px 20px;border-radius:100px;font-size:13px;font-weight:600;z-index:8000;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;backdrop-filter:blur(12px)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:var(--green);color:var(--green)}
+#toast.err{border-color:var(--red);color:var(--red)}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
+.screen.hidden{display:none!important}
+.scard{width:100%;max-width:360px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 24px 28px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.stitle2{font-size:20px;font-weight:900;letter-spacing:5px;color:var(--cyan)}
+.sdesc{font-size:14px;color:var(--t2);text-align:center;line-height:1.55}
+.shint{font-size:11px;color:var(--t3);text-align:center;font-family:var(--M);line-height:1.6}
+
+/* ONBOARD STEPS */
+.steps{width:100%;display:flex;flex-direction:column;gap:8px}
+.step{display:flex;align-items:flex-start;gap:10px;padding:11px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--soft)}
+.stepn{width:22px;height:22px;border-radius:50%;background:var(--cdim);border:1px solid var(--cyan);color:var(--cyan);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.stept{font-size:13px;color:var(--t2);line-height:1.5}
+.stept b{color:var(--t1)}
+
+/* APP */
+#app{max-width:480px;margin:0 auto;min-height:100dvh;padding-bottom:calc(var(--nav) + var(--safe))}
+#app.hidden{display:none!important}
+
+/* TOP BAR */
+.topbar{display:flex;align-items:center;gap:8px;padding:12px 14px 0}
+.topbar-name{font-family:var(--M);font-size:11px;color:var(--t3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-name b{color:var(--cyan)}
+
+/* ICON BUTTON */
+.ib{width:38px;height:38px;background:var(--bg3);border:1px solid var(--soft);border-radius:10px;color:var(--t2);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.ib:active{background:var(--cdim);color:var(--cyan);transform:scale(.93)}
+.ib.spin svg{animation:spin .7s linear infinite}
+
+/* TAB SECTIONS */
+.tab-s{display:none;padding:0 14px 24px;animation:fadeUp .28s ease}
+.tab-s.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* PAGE HEADER */
+.ph{padding:14px 0 16px;border-bottom:1px solid var(--soft);margin-bottom:16px;position:relative}
+.ph-lbl{font-family:var(--M);font-size:10px;color:var(--cyan);letter-spacing:3px;font-weight:600}
+.ph-title{font-size:26px;font-weight:700;margin-top:3px;line-height:1}
+.ph-right{position:absolute;right:0;top:14px;display:flex;gap:6px}
+
+/* SECTION LABEL */
+.sl{font-family:var(--M);font-size:10px;color:var(--t3);letter-spacing:3px;font-weight:600;margin:16px 0 8px}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#0f0f1a,#0a0f1a);border:1px solid var(--border);border-radius:18px;padding:22px 16px 16px;position:relative;overflow:hidden;margin-bottom:4px}
+.hero::before{content:'';position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;background:var(--cdim);filter:blur(40px);pointer-events:none}
+.hero-km{font-family:var(--M);font-size:50px;font-weight:600;color:var(--cyan);line-height:1;text-shadow:0 0 28px var(--cglow)}
+.hero-unit{font-size:14px;color:var(--t2);margin-left:6px}
+.hero-sub{display:flex;border-top:1px solid var(--soft);padding-top:12px;margin-top:14px}
+.ms{flex:1;text-align:center;border-right:1px solid var(--soft)}
+.ms:last-child{border-right:none}
+.ms-val{display:block;font-family:var(--M);font-size:17px;font-weight:600}
+.ms-lbl{font-size:11px;color:var(--t2)}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);padding:13px}
+.empty{color:var(--t2);font-size:14px;text-align:center;padding:8px 0}
+
+/* FLEET */
+.fleet{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fc{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);padding:12px;position:relative;overflow:hidden}
+.fc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),transparent)}
+.fc-name{font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.fc-km{font-family:var(--M);font-size:20px;font-weight:600;line-height:1;margin-bottom:2px}
+.fc-sub{font-size:11px;color:var(--t3);font-family:var(--M)}
+
+/* RIDES TABLE */
+.rtable-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rtable{width:100%;border-collapse:collapse;font-family:var(--M);font-size:12px}
+.rtable th{text-align:left;padding:6px 8px;color:var(--t3);font-size:10px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--soft);white-space:nowrap}
+.rtable td{padding:8px 8px;border-bottom:1px solid var(--soft);color:var(--t1);vertical-align:middle}
+.rtable tr:last-child td{border-bottom:none}
+.rtable tr:hover td{background:rgba(0,229,255,.03)}
+.rtable .r{text-align:right}
+.rtable .hidden-col{display:none}
+
+/* TABLE COLUMN TOGGLES */
+.col-toggles{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.ctog{padding:4px 10px;border-radius:100px;border:1px solid var(--soft);background:var(--bg3);color:var(--t2);font-size:11px;font-family:var(--M);transition:all .15s}
+.ctog.on{border-color:var(--cyan);color:var(--cyan);background:var(--cdim)}
+
+/* CHART */
+.chart-card{padding:11px}
+
+/* LAST RIDE */
+.lr-model{font-size:16px;font-weight:700;margin-bottom:2px}
+.lr-km{font-family:var(--M);font-size:34px;font-weight:600;line-height:1}
+.lr-km small{font-size:15px;color:var(--t2)}
+.lr-date{font-family:var(--M);font-size:11px;color:var(--t3);margin-top:2px}
+.lr-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--soft)}
+.lr-row span{font-size:13px;color:var(--t2)}
+.lr-row strong{font-family:var(--M);font-size:13px}
+
+/* FORMS */
+.fg{margin-bottom:14px}
+.fl{display:block;font-size:11px;font-weight:600;color:var(--t2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;font-family:var(--M)}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--soft);border-radius:8px;color:var(--t1);font-size:16px;padding:11px 13px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+.fi:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cdim)}
+.fi::placeholder{color:var(--t3)}
+.fi.sm{font-size:14px;padding:8px 11px}
+.fhint{font-size:12px;color:var(--t2);margin-top:4px;font-family:var(--M)}
+.fodm{font-family:var(--M);font-size:30px;font-weight:600;padding:13px 52px 13px 13px;color:var(--cyan);text-align:right;letter-spacing:2px}
+.fodm-wrap{position:relative}
+.fodm-unit{position:absolute;right:13px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--t2);font-family:var(--M);pointer-events:none}
+
+/* MODEL CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:7px 15px;border-radius:100px;border:1px solid var(--soft);background:var(--bg3);color:var(--t2);font-size:13px;font-weight:600;transition:all .15s}
+.chip.on{background:var(--cdim);border-color:var(--cyan);color:var(--cyan)}
+.chip:active{transform:scale(.95)}
+.chip.empty-chip{color:var(--t3);font-style:italic;cursor:default}
+
+/* PREVIEW */
+.preview{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:14px;display:flex;flex-direction:column;gap:6px}
+.prev-row{display:flex;justify-content:space-between;align-items:center}
+.prev-row span{font-size:13px;color:var(--t2)}
+.prev-row strong{font-family:var(--M);font-size:14px;color:var(--cyan)}
+
+/* BUTTONS */
+.btn{width:100%;padding:14px;border-radius:8px;background:var(--cyan);color:#000;font-size:15px;font-weight:700;border:none;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;position:relative;overflow:hidden}
+.btn:active{transform:scale(.98);background:#00c5dd}
+.btn:disabled{background:var(--bg3);color:var(--t3);cursor:not-allowed;transform:none}
+.btn.loading::after{content:'';position:absolute;right:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;border-radius:50%;border:2px solid #000;border-top-color:transparent;animation:spin .6s linear infinite}
+.btn-ghost{background:none;border:1px solid var(--soft);color:var(--t2);padding:8px 16px;border-radius:8px;font-size:13px;font-family:var(--F);transition:all .2s}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-outline{background:none;border:1px solid var(--cyan);color:var(--cyan);padding:12px 18px;border-radius:8px;font-size:14px;font-weight:600;font-family:var(--F);transition:all .2s;display:flex;align-items:center;gap:8px;justify-content:center;width:100%}
+.btn-outline:active{background:var(--cdim)}
+
+/* GARAGE */
+.gi{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);padding:12px 13px;display:flex;align-items:center;gap:11px;margin-bottom:7px}
+.gdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ginfo{flex:1}
+.gname{font-size:15px;font-weight:600;margin-bottom:2px}
+.gmeta{font-family:var(--M);font-size:11px;color:var(--t2)}
+.gkm{font-family:var(--M);font-size:18px;font-weight:600;color:var(--cyan)}
+
+/* FILTERS */
+.fp{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);padding:13px;margin-bottom:4px}
+.frow{display:flex;gap:10px}
+.mchks{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.mchk{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:100px;border:1px solid var(--soft);background:var(--bg3);cursor:pointer;font-size:13px;color:var(--t2);transition:all .15s}
+.mchk input{display:none}
+.mchk.on{border-color:var(--cyan);color:var(--cyan);background:var(--cdim)}
+.fsummary{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 4px}
+.kpi{background:var(--card);border:1px solid var(--soft);border-radius:8px;padding:8px 5px;text-align:center}
+.kpi-v{display:block;font-family:var(--M);font-size:15px;font-weight:600;color:var(--cyan)}
+.kpi-l{font-size:10px;color:var(--t3)}
+
+/* BOTTOM NAV */
+.nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav) + var(--safe));padding-bottom:var(--safe);background:rgba(10,10,15,.92);backdrop-filter:blur(20px);border-top:1px solid var(--soft);display:flex;align-items:flex-start;padding-top:8px;z-index:300;max-width:480px;margin:0 auto}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--t3);font-size:10px;font-weight:600;padding:3px 0;transition:color .2s;font-family:var(--F)}
+.ni.active{color:var(--cyan)}
+.ni:active{transform:scale(.88)}
+.niico{width:22px;height:22px}
+.ni-add{margin-top:-14px}
+.niring{width:50px;height:50px;border-radius:50%;background:var(--cyan);color:#000;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px var(--cglow);transition:all .2s}
+.ni-add.active .niring,.ni-add:active .niring{background:#33ecff;transform:scale(.93)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:0 14px 20px}
+.modal-bg.hidden{display:none!important}
+.modal{background:var(--bg3);border:1px solid var(--border);border-radius:18px;padding:20px;width:100%;max-width:440px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:12px}
+.modal-actions{display:flex;gap:8px;margin-top:12px}
+.modal-actions .btn-ghost,.modal-actions .btn{flex:1}
+
+@media(min-width:481px){.nav{left:50%;transform:translateX(-50%);width:480px}}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sr"></div><div class="sr"></div>
+  <svg class="slogo" width="54" height="54" viewBox="0 0 56 56" fill="none">
+    <circle cx="28" cy="28" r="26" stroke="#00e5ff" stroke-width="2" opacity=".3"/>
+    <circle cx="28" cy="28" r="18" stroke="#00e5ff" stroke-width="1.5"/>
+    <circle cx="28" cy="28" r="6" fill="#00e5ff"/>
+    <line x1="28" y1="4" x2="28" y2="18" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+    <line x1="28" y1="38" x2="28" y2="52" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <p class="stitle">EUC TRACKER</p>
+  <p class="ssub">LOADING…</p>
+</div>
+
+<div id="toast"></div>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen hidden">
+  <div class="scard">
+    <svg width="48" height="48" viewBox="0 0 56 56" fill="none" style="animation:spin 8s linear infinite">
+      <circle cx="28" cy="28" r="26" stroke="#00e5ff" stroke-width="2" opacity=".3"/>
+      <circle cx="28" cy="28" r="18" stroke="#00e5ff" stroke-width="1.5"/>
+      <circle cx="28" cy="28" r="6" fill="#00e5ff"/>
+      <line x1="28" y1="4" x2="28" y2="18" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+      <line x1="28" y1="38" x2="28" y2="52" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <p class="stitle2">EUC TRACKER</p>
+    <p class="sdesc">Sign in with Google to track your rides</p>
+    <div id="g-btn"></div>
+    <p class="shint">Your data is stored in your personal<br/>Google Drive — no one else can see it</p>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="screen-onboard" class="screen hidden">
+  <div class="scard">
+    <p class="stitle2" style="font-size:15px;letter-spacing:3px">FIRST TIME SETUP</p>
+    <p class="sdesc">Create your personal database in Google Drive</p>
+    <div class="steps">
+      <div class="step"><div class="stepn">1</div><div class="stept">Click the button below — a <b>Google Sheets template</b> opens</div></div>
+      <div class="step"><div class="stepn">2</div><div class="stept">Click <b>File → Make a copy</b> — saved to your Drive</div></div>
+      <div class="step"><div class="stepn">3</div><div class="stept">In your copy: click <b>Extensions → Apps Script → Deploy → New deployment</b></div></div>
+      <div class="step"><div class="stepn">4</div><div class="stept">Choose <b>Web app</b>, set access to <b>Anyone</b>, click Deploy — copy the URL</div></div>
+      <div class="step"><div class="stepn">5</div><div class="stept">Return here and click <b>"I'm done"</b></div></div>
+    </div>
+    <a id="tpl-link" class="btn-outline" href="#" target="_blank">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Open Sheets template
+    </a>
+    <button class="btn" id="btn-done">I'm done →</button>
+    <p class="shint">This setup is done only once</p>
+  </div>
+</div>
+
+<!-- PASTE URL -->
+<div id="screen-url" class="screen hidden">
+  <div class="scard">
+    <p class="stitle2" style="font-size:14px;letter-spacing:2px">CONNECT DATABASE</p>
+    <p class="sdesc">Paste your Apps Script Web App URL</p>
+    <div class="fg" style="width:100%">
+      <label class="fl">Web App URL</label>
+      <input type="url" id="url-input" class="fi"
+        placeholder="https://script.google.com/macros/s/…/exec"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <p class="fhint">From Apps Script → Deploy → Manage deployments</p>
+    </div>
+    <button class="btn" id="btn-connect">Connect</button>
+    <button class="btn-ghost" id="btn-back" style="width:100%">← Back</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+  <div class="topbar">
+    <div class="topbar-name" id="topbar-name">—</div>
+    <button class="ib" id="btn-signout" title="Sign out">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+    <button class="ib" id="btn-sync" title="Sync">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <section id="tab-dashboard" class="tab-s active">
+    <div class="ph">
+      <div class="ph-lbl">OVERVIEW</div>
+      <div class="ph-title">Dashboard</div>
+    </div>
+    <div class="hero">
+      <div style="display:flex;align-items:baseline">
+        <span class="hero-km" id="d-total">—</span>
+        <span class="hero-unit">km total</span>
+      </div>
+      <div class="hero-sub">
+        <div class="ms"><span class="ms-val" id="d-today">—</span><span class="ms-lbl">Today</span></div>
+        <div class="ms"><span class="ms-val" id="d-week">—</span><span class="ms-lbl">This week</span></div>
+        <div class="ms"><span class="ms-val" id="d-avg">—</span><span class="ms-lbl">km/day avg</span></div>
+      </div>
+    </div>
+
+    <div class="sl">LAST RIDE</div>
+    <div class="card" id="d-last"><p class="empty">No rides yet — add your first!</p></div>
+
+    <div class="sl">FLEET</div>
+    <div class="fleet" id="d-fleet"></div>
+
+    <div class="sl">THIS WEEK</div>
+    <div class="card chart-card"><canvas id="chart-week" height="130"></canvas></div>
+
+    <div class="sl">ALL RIDES</div>
+    <div class="card">
+      <div class="col-toggles" id="col-toggles"></div>
+      <div id="d-table"><p class="empty">No entries.</p></div>
+    </div>
+  </section>
+
+  <!-- NEW ENTRY -->
+  <section id="tab-entry" class="tab-s">
+    <div class="ph">
+      <div class="ph-lbl">LOG RIDE</div>
+      <div class="ph-title">New Entry</div>
+    </div>
+    <div class="fg">
+      <div class="fl">EUC Model</div>
+      <div class="chips" id="model-chips"></div>
+      <p class="fhint" id="odm-hint"></p>
+    </div>
+    <div class="fg">
+      <div class="fl">Date & Time</div>
+      <input type="datetime-local" id="e-date" class="fi"/>
+    </div>
+    <div class="fg">
+      <div class="fl">Odometer Reading (km)</div>
+      <div class="fodm-wrap">
+        <input type="number" id="e-odm" class="fi fodm" inputmode="numeric" placeholder="0" min="0" step="0.1"/>
+        <span class="fodm-unit">km</span>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fl">Remarks</div>
+      <textarea id="e-remarks" class="fi" rows="3" placeholder="Route, weather, battery…" style="resize:none"></textarea>
+    </div>
+    <div class="preview" id="e-preview" style="display:none">
+      <div class="prev-row"><span>Trip distance</span><strong id="e-trip">—</strong></div>
+      <div class="prev-row"><span>New total</span><strong id="e-total2">—</strong></div>
+    </div>
+    <button class="btn" id="btn-save-ride">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Save Ride
+    </button>
+  </section>
+
+  <!-- GARAGE -->
+  <section id="tab-garage" class="tab-s">
+    <div class="ph">
+      <div class="ph-lbl">FLEET</div>
+      <div class="ph-title">Garage</div>
+    </div>
+    <div class="sl">ADD NEW EUC</div>
+    <div class="card">
+      <div class="fg">
+        <div class="fl">Model Name</div>
+        <input type="text" id="g-name" class="fi" placeholder="e.g. Veteran Sherman S"/>
+      </div>
+      <div class="fg">
+        <div class="fl">Starting Odometer (km)</div>
+        <input type="number" id="g-odm" class="fi" inputmode="numeric" placeholder="0 for new wheel" min="0" step="0.1"/>
+        <p class="fhint">Enter current ODM for used EUCs</p>
+      </div>
+      <div class="fg">
+        <div class="fl">Date Added</div>
+        <input type="date" id="g-date" class="fi"/>
+      </div>
+      <button class="btn" id="btn-add-euc">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add to Garage
+      </button>
+    </div>
+    <div class="sl">MY FLEET</div>
+    <div id="garage-list"></div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section id="tab-analytics" class="tab-s">
+    <div class="ph">
+      <div class="ph-lbl">INSIGHTS</div>
+      <div class="ph-title">Analytics</div>
+    </div>
+    <div class="fp">
+      <div class="frow">
+        <div class="fg" style="flex:1;margin-bottom:0"><div class="fl">From</div><input type="date" id="f-from" class="fi sm"/></div>
+        <div class="fg" style="flex:1;margin-bottom:0"><div class="fl">To</div><input type="date" id="f-to" class="fi sm"/></div>
+      </div>
+      <div class="fg" style="margin-top:12px;margin-bottom:0">
+        <div class="fl">Models</div>
+        <div class="mchks" id="f-models"></div>
+      </div>
+      <div class="fsummary">
+        <span id="f-summary" style="font-family:var(--M);font-size:10px;color:var(--t3)">All time · All models</span>
+        <button class="btn-ghost" id="btn-reset-f">Reset</button>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><span class="kpi-v" id="a-total">—</span><span class="kpi-l">Total km</span></div>
+      <div class="kpi"><span class="kpi-v" id="a-count">—</span><span class="kpi-l">Rides</span></div>
+      <div class="kpi"><span class="kpi-v" id="a-avg">—</span><span class="kpi-l">km/ride</span></div>
+      <div class="kpi"><span class="kpi-v" id="a-best">—</span><span class="kpi-l">Best ride</span></div>
+    </div>
+    <div class="sl">RIDE DYNAMICS</div>
+    <div class="card chart-card"><canvas id="chart-dyn" height="200"></canvas></div>
+    <div class="sl">CUMULATIVE GROWTH</div>
+    <div class="card chart-card"><canvas id="chart-cum" height="200"></canvas></div>
+    <div class="sl">SEASONALITY</div>
+    <div class="card chart-card"><canvas id="chart-sea" height="200"></canvas></div>
+  </section>
+
+  <!-- BOTTOM NAV -->
+  <nav class="nav">
+    <button class="ni active" data-tab="dashboard">
+      <svg class="niico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="ni ni-add" data-tab="entry">
+      <div class="niring">
+        <svg class="niico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      <span>New Ride</span>
+    </button>
+    <button class="ni" data-tab="garage">
+      <svg class="niico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Garage</span>
+    </button>
+    <button class="ni" data-tab="analytics">
+      <svg class="niico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Analytics</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+'use strict';
+
+// ─── CONFIG ─────────────────────────────────────────
+// Fill in your Google Client ID here after creating it
+const CLIENT_ID    = '389877958639-510o4t4f22b0h2o2ms27n8eeovhkc284.apps.googleusercontent.com';
+const TEMPLATE_URL = 'https://docs.google.com/spreadsheets/d/1ujKLLtxDLpiThQz6ZCgSaoXtnB_Q_jx7h79v5Je18HM/copy';
+
+// ─── STATE ──────────────────────────────────────────
+const S = {
+  user:      null,
+  apiUrl:    localStorage.getItem('euc_api') || 'https://script.google.com/macros/s/AKfycbyY_8rpbqb3pAQ3z-04YdEe-ICHw50IrdM_9te-ZnekjIKGNWbLnHyf9gVnhaFZtZMOjQ/exec',
+  rides:     [],
+  models:    [],
+  lastModel: localStorage.getItem('euc_last') || '',
+  charts:    {},
+  tab:       'dashboard',
+  cols:      JSON.parse(localStorage.getItem('euc_cols') || '{"date":true,"model":true,"odm":false,"km":true,"total":true,"remarks":true}'),
+};
+
+const COLORS = ['#00e5ff','#ffb800','#00ff87','#ff4d6d','#a855f7','#f97316','#3b82f6','#84cc16'];
+const COL_DEFS = [
+  { key:'date',    label:'Date'     },
+  { key:'model',   label:'Model'    },
+  { key:'odm',     label:'ODM'      },
+  { key:'km',      label:'Km'       },
+  { key:'total',   label:'Total km' },
+  { key:'remarks', label:'Remarks'  },
+];
+
+// ─── UTILS ──────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const $$ = sel => [...document.querySelectorAll(sel)];
+
+function fmt(n, d=1) {
+  if (n==null||isNaN(n)) return '—';
+  return Number(n).toFixed(d).replace(/\.0$/,'');
+}
+function fdate(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  return isNaN(d) ? s : d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+function nowISO() {
+  const d=new Date(); return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+function today()     { return new Date().toISOString().slice(0,10); }
+function weekStart() { const d=new Date(); d.setDate(d.getDate()-d.getDay()); return d.toISOString().slice(0,10); }
+
+function toast(msg, type='') {
+  const t=$('toast'); t.textContent=msg; t.className='show '+type;
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3200);
+}
+function mcolor(name) {
+  const i=S.models.findIndex(m=>m.name===name);
+  return COLORS[i%COLORS.length]||'#00e5ff';
+}
+function lastOdm(model) {
+  const rs=S.rides.filter(r=>r.model===model).sort((a,b)=>a.date.localeCompare(b.date));
+  return rs.length ? rs[rs.length-1].inputOdm : (S.models.find(m=>m.name===model)?.startOdm||0);
+}
+
+// ─── SCREENS ────────────────────────────────────────
+function showScreen(id) {
+  ['screen-login','screen-onboard','screen-url','app'].forEach(s=>{
+    const el=document.getElementById(s);
+    if(el) el.classList.toggle('hidden', s!==id);
+  });
+}
+
+// ─── AUTH ────────────────────────────────────────────
+function initGIS() {
+  if (!CLIENT_ID) {
+    // No Client ID — show login with message
+    showScreen('screen-login');
+    $('g-btn').innerHTML='<p style="color:var(--amber);font-size:12px;text-align:center;font-family:var(--M);line-height:1.5">⚙️ Set CLIENT_ID in index.html<br/>See README.md for instructions</p>';
+    return;
+  }
+  google.accounts.id.initialize({ client_id:CLIENT_ID, callback:onSignIn, auto_select:false });
+  google.accounts.id.renderButton($('g-btn'),{ theme:'filled_black',size:'large',width:280,text:'signin_with',shape:'pill' });
+  showScreen('screen-login');
+}
+
+function onSignIn(resp) {
+  const p=JSON.parse(atob(resp.credential.split('.')[1]));
+  S.user={ name:p.name, email:p.email };
+  $('topbar-name').innerHTML=`<b>${p.name}</b>`;
+  if (!S.apiUrl) {
+    if (TEMPLATE_URL) $('tpl-link').href=TEMPLATE_URL;
+    showScreen('screen-onboard');
+  } else {
+    showScreen('app');
+    sync();
+  }
+}
+
+function signOut() {
+  S.user=null; S.rides=[]; S.models=[];
+  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+  showScreen('screen-login');
+  toast('Signed out');
+}
+
+// ─── ONBOARDING ──────────────────────────────────────
+$('btn-done').onclick = ()=>showScreen('screen-url');
+$('btn-back').onclick = ()=>showScreen('screen-onboard');
+
+$('btn-connect').onclick = async ()=>{
+  const raw=$('url-input').value.trim();
+  if (!raw.includes('script.google.com')) {
+    toast('Paste the Apps Script Web App URL (script.google.com/…)','err');
+    return;
+  }
+  const btn=$('btn-connect'); btn.classList.add('loading');
+  try {
+    const res=await fetch(raw+'?action=get');
+    const json=await res.json();
+    if (json.success!==undefined) {
+      S.apiUrl=raw;
+      localStorage.setItem('euc_api',raw);
+      S.rides=json.rides||[];
+      S.models=json.models||[];
+      showScreen('app');
+      renderAll();
+      toast('Connected to database ✓','ok');
+    } else {
+      toast('URL not working — check Apps Script deployment','err');
+    }
+  } catch(e) {
+    toast('Connection failed: '+e.message,'err');
+  } finally { btn.classList.remove('loading'); }
+};
+
+// ─── API ─────────────────────────────────────────────
+async function apiCall(params) {
+  if (!S.apiUrl) throw new Error('Database not connected');
+  const url=S.apiUrl+'?'+new URLSearchParams(params).toString();
+  const res=await fetch(url);
+  const j=await res.json();
+  if (!j.success) throw new Error(j.error||'API error');
+  return j;
+}
+
+async function sync() {
+  if (!S.apiUrl) return;
+  const btn=$('btn-sync'); btn.classList.add('spin');
+  try {
+    const d=await apiCall({action:'get'});
+    S.rides=d.rides||[]; S.models=d.models||[];
+    renderAll();
+    toast('Synced ✓','ok');
+  } catch(e) {
+    toast('Sync error: '+e.message,'err');
+  } finally { btn.classList.remove('spin'); }
+}
+
+// ─── NAVIGATION ──────────────────────────────────────
+$$('.ni').forEach(b=>b.addEventListener('click',()=>{
+  const tab=b.dataset.tab; if(!tab) return;
+  S.tab=tab;
+  $$('.ni').forEach(x=>x.classList.remove('active'));
+  $$('.tab-s').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById('tab-'+tab)?.classList.add('active');
+  if(tab==='entry')     renderEntry();
+  if(tab==='garage')    renderGarage();
+  if(tab==='analytics') renderAnalytics();
+  if(tab==='dashboard') renderDashboard();
+}));
+
+$('btn-sync').onclick    = sync;
+$('btn-signout').onclick = signOut;
+
+// ─── DASHBOARD ───────────────────────────────────────
+function renderDashboard() {
+  const tod=today(), ws=weekStart();
+  const all=S.rides.reduce((s,r)=>s+(r.km||0),0);
+  $('d-total').textContent=fmt(all,0);
+  $('d-today').textContent=fmt(S.rides.filter(r=>r.date.startsWith(tod)).reduce((s,r)=>s+(r.km||0),0),0)+' km';
+  $('d-week').textContent=fmt(S.rides.filter(r=>r.date.slice(0,10)>=ws).reduce((s,r)=>s+(r.km||0),0),0)+' km';
+  if (S.rides.length) {
+    const dates=S.rides.map(r=>r.date.slice(0,10)).sort();
+    const days=Math.max(1,Math.round((new Date(dates[dates.length-1])-new Date(dates[0]))/86400000)+1);
+    $('d-avg').textContent=fmt(all/days,1);
+  } else $('d-avg').textContent='—';
+
+  const last=[...S.rides].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  $('d-last').innerHTML=last?`
+    <div class="lr-model" style="color:${mcolor(last.model)}">${last.model}</div>
+    <div class="lr-km">${fmt(last.km,1)}<small> km</small></div>
+    <div class="lr-date">${fdate(last.date)} · ${last.date.slice(11,16)}</div>
+    ${last.remarks?`<div style="font-size:13px;color:var(--t2);margin-top:6px">${last.remarks}</div>`:''}
+    <div class="lr-row"><span>ODM</span><strong>${fmt(last.inputOdm,1)} km</strong></div>
+    <div class="lr-row"><span>Model total</span><strong>${fmt(last.totalKm,0)} km</strong></div>
+  `:'<p class="empty">No rides yet — add your first!</p>';
+
+  $('d-fleet').innerHTML=S.models.length?S.models.map(m=>{
+    const rs=S.rides.filter(r=>r.model===m.name).sort((a,b)=>a.date.localeCompare(b.date));
+    const total=rs.length?rs[rs.length-1].totalKm:0;
+    const days=rs.length?rs[rs.length-1].eucTime:0;
+    const c=mcolor(m.name);
+    return `<div class="fc"><div class="fc-name">${m.name}</div>
+      <div class="fc-km" style="color:${c}">${fmt(total,0)} km</div>
+      <div class="fc-sub">${days?fmt(total/days,1):'—'} km/day</div></div>`;
+  }).join(''):'<p class="empty" style="grid-column:1/-1">No EUCs — add one in Garage.</p>';
+
+  // Week chart
+  const wl=[],wd=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const ds=d.toISOString().slice(0,10);
+    wl.push(d.toLocaleDateString('en-GB',{weekday:'short'}));
+    wd.push(S.rides.filter(r=>r.date.startsWith(ds)).reduce((s,r)=>s+(r.km||0),0));
+  }
+  if(S.charts.week) S.charts.week.destroy();
+  S.charts.week=new Chart($('chart-week'),{type:'bar',
+    data:{labels:wl,datasets:[{data:wd,backgroundColor:'rgba(0,229,255,.22)',borderColor:'#00e5ff',borderWidth:1.5,borderRadius:4}]},
+    options:cOpts({legend:false})});
+
+  renderColToggles();
+  renderTable();
+}
+
+// ─── COLUMN TOGGLES ──────────────────────────────────
+function renderColToggles() {
+  const wrap=$('col-toggles');
+  wrap.innerHTML=COL_DEFS.map(c=>`
+    <button class="ctog${S.cols[c.key]?' on':''}" data-col="${c.key}">${c.label}</button>
+  `).join('');
+  wrap.querySelectorAll('.ctog').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.col;
+    S.cols[k]=!S.cols[k];
+    localStorage.setItem('euc_cols',JSON.stringify(S.cols));
+    b.classList.toggle('on',S.cols[k]);
+    renderTable();
+  }));
+}
+
+// ─── RIDES TABLE ─────────────────────────────────────
+function renderTable() {
+  const el=$('d-table');
+  const sorted=[...S.rides].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!sorted.length){ el.innerHTML='<p class="empty">No entries yet.</p>'; return; }
+  const vis=COL_DEFS.filter(c=>S.cols[c.key]);
+  el.innerHTML=`<div class="rtable-wrap"><table class="rtable">
+    <thead><tr>${vis.map(c=>`<th${c.key==='km'||c.key==='total'||c.key==='odm'?' class="r"':''}>${c.label}</th>`).join('')}</tr></thead>
+    <tbody>${sorted.map(r=>{
+      const cells={
+        date: `<td style="white-space:nowrap;font-size:11px">${r.date?r.date.slice(0,16):'—'}</td>`,
+        model:`<td><span style="color:${mcolor(r.model)};font-weight:700;font-size:12px">${r.model}</span></td>`,
+        odm:  `<td class="r">${fmt(r.inputOdm,1)}</td>`,
+        km:   `<td class="r" style="color:var(--cyan);font-weight:700">+${fmt(r.km,1)}</td>`,
+        total:`<td class="r">${fmt(r.totalKm,0)}</td>`,
+        remarks:`<td style="color:var(--t2);font-size:11px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.remarks||''}</td>`,
+      };
+      return '<tr>'+vis.map(c=>cells[c.key]).join('')+'</tr>';
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+// ─── NEW ENTRY ───────────────────────────────────────
+function renderEntry() {
+  const chips=$('model-chips');
+  if(!S.models.length){
+    chips.innerHTML='<span class="chip empty-chip">No EUCs — add one in Garage</span>';
+    $('odm-hint').textContent=''; return;
+  }
+  let active=S.lastModel&&S.models.find(m=>m.name===S.lastModel)?S.lastModel:S.models[0].name;
+
+  function buildChips(){
+    chips.innerHTML=S.models.map(m=>
+      `<button class="chip${m.name===active?' on':''}" data-m="${m.name}">${m.name}</button>`
+    ).join('');
+    chips.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{
+      active=b.dataset.m; S.lastModel=active; localStorage.setItem('euc_last',active);
+      buildChips(); hint(); preview();
+    }));
+  }
+  function hint(){ $('odm-hint').textContent=`Last ODM (${active}): ${fmt(lastOdm(active),1)} km`; }
+  function preview(){
+    const odm=parseFloat($('e-odm').value), lo=lastOdm(active), prev=$('e-preview');
+    if(odm&&odm>lo){
+      const mObj=S.models.find(x=>x.name===active);
+      $('e-trip').textContent=`+${fmt(odm-lo,1)} km`;
+      $('e-total2').textContent=`${fmt(odm-(mObj?.startOdm||0),0)} km`;
+      prev.style.display='flex';
+    } else prev.style.display='none';
+  }
+
+  buildChips(); hint();
+  $('e-date').value=nowISO();
+  $('e-odm').oninput=preview;
+
+  const btn=$('btn-save-ride');
+  btn.onclick=async()=>{
+    const dateVal=$('e-date').value;
+    const odmVal=parseFloat($('e-odm').value);
+    const remarks=$('e-remarks').value.trim();
+    if(!active)                return toast('Select a model','err');
+    if(!dateVal)               return toast('Set a date','err');
+    if(!odmVal||isNaN(odmVal)) return toast('Enter ODM reading','err');
+    const lo=lastOdm(active);
+    if(odmVal<lo) return toast(`ODM must be ≥ ${fmt(lo,1)} km`,'err');
+
+    const fromKm=lo, toKm=odmVal, km=Math.max(0,toKm-fromKm);
+    const mObj=S.models.find(x=>x.name===active);
+    const totalKm=toKm-(mObj?.startOdm||0);
+    const firstDate=mObj?.dateAdded||dateVal.slice(0,10);
+    const eucTime=Math.max(1,Math.round((new Date(dateVal.slice(0,10))-new Date(firstDate))/86400000)+1);
+    const ride={id:Date.now().toString(),date:dateVal,model:active,inputOdm:odmVal,
+      fromKm,toKm,km,totalKm,eucTime,staVid:totalKm/eucTime,remarks};
+
+    btn.classList.add('loading');
+    try {
+      await apiCall({action:'addRide',...ride});
+      S.rides.push(ride);
+      toast(`+${fmt(km,1)} km saved ✓`,'ok');
+      $('e-odm').value=''; $('e-remarks').value='';
+      $('e-date').value=nowISO(); $('e-preview').style.display='none';
+      hint(); renderDashboard();
+    } catch(e){ toast('Error: '+e.message,'err'); }
+    finally { btn.classList.remove('loading'); }
+  };
+}
+
+// ─── GARAGE ──────────────────────────────────────────
+function renderGarage(){
+  $('g-date').value=today();
+  $('garage-list').innerHTML=S.models.length?S.models.map((m,i)=>{
+    const rs=S.rides.filter(r=>r.model===m.name).sort((a,b)=>a.date.localeCompare(b.date));
+    const total=rs.length?rs[rs.length-1].totalKm:0;
+    const c=COLORS[i%COLORS.length];
+    return `<div class="gi">
+      <div class="gdot" style="background:${c};box-shadow:0 0 8px ${c}44"></div>
+      <div class="ginfo"><div class="gname">${m.name}</div>
+      <div class="gmeta">Added ${fdate(m.dateAdded)} · ${rs.length} rides · start: ${fmt(m.startOdm,1)} km</div></div>
+      <div class="gkm">${fmt(total,0)} km</div>
+    </div>`;
+  }).join(''):'<div class="card"><p class="empty">No EUCs yet — add your first wheel above!</p></div>';
+}
+
+$('btn-add-euc').onclick=async()=>{
+  const name=$('g-name').value.trim();
+  const startOdm=parseFloat($('g-odm').value)||0;
+  const dateAdded=$('g-date').value||today();
+  if(!name) return toast('Enter a model name','err');
+  if(S.models.find(m=>m.name===name)) return toast('Model already exists','err');
+  const btn=$('btn-add-euc'); btn.classList.add('loading');
+  try {
+    await apiCall({action:'addModel',name,startOdm,dateAdded});
+    S.models.push({name,startOdm,dateAdded});
+    toast(`${name} added ✓`,'ok');
+    $('g-name').value=''; $('g-odm').value='';
+    renderGarage();
+  } catch(e){ toast('Error: '+e.message,'err'); }
+  finally { btn.classList.remove('loading'); }
+};
+
+// ─── ANALYTICS ───────────────────────────────────────
+let FL={from:'',to:'',models:[]};
+
+function renderAnalytics(){
+  const mc=$('f-models');
+  if(!S.models.length){ mc.innerHTML='<span style="font-size:13px;color:var(--t3)">No EUCs</span>'; }
+  else {
+    if(!FL.models.length) FL.models=S.models.map(m=>m.name);
+    mc.innerHTML=S.models.map(m=>`
+      <label class="mchk${FL.models.includes(m.name)?' on':''}" data-m="${m.name}">
+        <input type="checkbox" ${FL.models.includes(m.name)?'checked':''}/>${m.name}
+      </label>`).join('');
+    mc.querySelectorAll('.mchk').forEach(l=>l.addEventListener('click',()=>{
+      const m=l.dataset.m;
+      if(FL.models.includes(m)){if(FL.models.length===1)return;FL.models=FL.models.filter(x=>x!==m);}
+      else FL.models.push(m);
+      l.classList.toggle('on',FL.models.includes(m));
+      applyFilters();
+    }));
+  }
+  $('f-from').addEventListener('change',e=>{FL.from=e.target.value;applyFilters();});
+  $('f-to').addEventListener('change',e=>{FL.to=e.target.value;applyFilters();});
+  applyFilters();
+}
+
+function applyFilters(){
+  let r=[...S.rides];
+  if(FL.from) r=r.filter(x=>x.date.slice(0,10)>=FL.from);
+  if(FL.to)   r=r.filter(x=>x.date.slice(0,10)<=FL.to);
+  if(FL.models.length) r=r.filter(x=>FL.models.includes(x.model));
+  r=r.sort((a,b)=>a.date.localeCompare(b.date));
+  const mStr=FL.models.length===S.models.length?'All models':FL.models.join(', ');
+  $('f-summary').textContent=`${FL.from?fdate(FL.from):'All time'} → ${FL.to?fdate(FL.to):'now'} · ${mStr}`;
+  const total=r.reduce((s,x)=>s+(x.km||0),0), best=r.length?Math.max(...r.map(x=>x.km||0)):0;
+  $('a-total').textContent=fmt(total,0); $('a-count').textContent=r.length;
+  $('a-avg').textContent=r.length?fmt(total/r.length,1):'—'; $('a-best').textContent=fmt(best,1);
+  drawDyn(r); drawCum(r,FL.models); drawSea(r,FL.models);
+}
+
+$('btn-reset-f').onclick=()=>{
+  FL={from:'',to:'',models:S.models.map(m=>m.name)};
+  $('f-from').value=''; $('f-to').value=''; renderAnalytics();
+};
+
+function drawDyn(rides){
+  if(S.charts.dyn) S.charts.dyn.destroy();
+  const models=[...new Set(rides.map(r=>r.model))];
+  S.charts.dyn=new Chart($('chart-dyn'),{type:'line',
+    data:{datasets:models.map(m=>({label:m,
+      data:rides.filter(r=>r.model===m).map(r=>({x:r.date.slice(0,10),y:r.km||0})),
+      borderColor:mcolor(m),backgroundColor:mcolor(m)+'22',pointBackgroundColor:mcolor(m),
+      pointRadius:4,tension:0.3,fill:false,borderWidth:2}))},
+    options:{...cOpts(),scales:{x:{type:'time',time:{unit:'day'},...sOpts()},y:sOpts()}}});
+}
+
+function drawCum(rides,models){
+  if(S.charts.cum) S.charts.cum.destroy();
+  const dates=[...new Set(rides.map(r=>r.date.slice(0,10)))].sort();
+  if(!dates.length) return;
+  const datasets=[],combined={};
+  models.forEach(m=>{
+    const mr=rides.filter(r=>r.model===m).sort((a,b)=>a.date.localeCompare(b.date));
+    if(!mr.length) return;
+    let last=0,cd=[];
+    dates.forEach(d=>{mr.filter(r=>r.date.startsWith(d)).forEach(r=>last=r.totalKm);cd.push({x:d,y:last});combined[d]=(combined[d]||0)+last;});
+    datasets.push({label:m,data:cd,borderColor:mcolor(m),backgroundColor:'transparent',pointRadius:2,tension:0.4,borderWidth:2});
+  });
+  if(models.length>1) datasets.push({label:'All',data:dates.map(d=>({x:d,y:combined[d]||0})),
+    borderColor:'#fff',backgroundColor:'transparent',borderWidth:2,borderDash:[6,3],pointRadius:0,tension:0.4});
+  S.charts.cum=new Chart($('chart-cum'),{type:'line',data:{datasets},
+    options:{...cOpts(),scales:{x:{type:'time',time:{unit:'month'},...sOpts()},y:sOpts()}}});
+}
+
+function drawSea(rides,models){
+  if(S.charts.sea) S.charts.sea.destroy();
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  S.charts.sea=new Chart($('chart-sea'),{type:'bar',
+    data:{labels:months,datasets:models.map(m=>({label:m,
+      data:months.map((_,mi)=>rides.filter(r=>r.model===m&&parseInt(r.date.slice(5,7))-1===mi).reduce((s,r)=>s+(r.km||0),0)),
+      backgroundColor:mcolor(m)+'bb',borderColor:mcolor(m),borderWidth:1,borderRadius:3}))},
+    options:{...cOpts(),scales:{x:sOpts(),y:sOpts()},
+      plugins:{...cOpts().plugins,...(models.length>1?{tooltip:{mode:'index',intersect:false}}:{})}}});
+}
+
+function cOpts({legend=true}={}){
+  return{responsive:true,maintainAspectRatio:true,interaction:{mode:'nearest',axis:'x',intersect:false},
+    plugins:{
+      legend:{display:legend,labels:{color:'#8888aa',font:{family:'JetBrains Mono',size:11},boxWidth:12,padding:10}},
+      tooltip:{backgroundColor:'#18181f',borderColor:'rgba(0,229,255,.2)',borderWidth:1,
+        titleColor:'#00e5ff',bodyColor:'#f0f0f8',padding:9,
+        titleFont:{family:'JetBrains Mono',size:11},bodyFont:{family:'JetBrains Mono',size:12},
+        callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y,1)} km`}}}};
+}
+function sOpts(){
+  return{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#44445a',font:{family:'JetBrains Mono',size:10}},border:{color:'rgba(255,255,255,.06)'}};
+}
+
+function renderAll(){
+  renderDashboard();
+  if(S.tab==='analytics') renderAnalytics();
+  if(S.tab==='garage')    renderGarage();
+  if(S.tab==='entry')     renderEntry();
+}
+
+// ─── INIT ────────────────────────────────────────────
+function init(){
+  setTimeout(()=>{ $('splash').classList.add('out'); },1100);
+  setTimeout(()=>{
+    if(window._gisReady){initGIS();}
+    else window.addEventListener('gis',initGIS);
+  },1300);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
