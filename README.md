@@ -2,73 +2,85 @@
 
 A mobile-first Progressive Web App for tracking Electric Unicycle rides and statistics.
 
-Built for riders who want a clean, fast way to log odometer readings and visualize their progress — without ads, subscriptions, or giving their data to anyone.
+Log your odometer readings, track multiple wheels, and visualise your progress over time — without ads, subscriptions, or sharing your data with anyone.
 
 ---
 
 ## What it does
 
-- Log rides by entering your odometer reading — distance is calculated automatically
-- Track multiple EUCs in a single app
-- View your progress over time: today, this week, this month, this year, all time
-- Analyze your riding patterns with interactive charts
-- Your data lives in **your own Google Drive** — no shared servers, no one else can see it
+- Log entries by entering your odometer reading — distance is calculated automatically
+- Track multiple wheels in a single app
+- View your progress: this week, this month, this year, all time
+- Filter the dashboard by a specific wheel
+- Choose which average metric to display (daily, weekly, monthly, per entry, streak)
+- Analyse riding patterns with three interactive charts
+- Edit or delete any entry, with automatic recalculation of all affected data
+- Manage your wheel fleet: add, edit, colour-code, or remove wheels
+- Your data lives in **your own Google Drive** — no shared servers, no one else can access it
 
 ---
 
 ## Getting started
 
 ### 1. Open the app
-Go to: **[https://79mas.github.io/EUC-progress-tracking-PWA](https://79mas.github.io/EUC-progress-tracking-PWA)**
+
+**[https://79mas.github.io/EUC-progress-tracking-PWA](https://79mas.github.io/EUC-progress-tracking-PWA)**
 
 ### 2. Sign in with Google
-Tap "Sign in with Google" and choose your Google account.
 
-Your data will be stored in a Google Sheets file in **your personal Google Drive**. The app never sees your email address or any personal information beyond your name (shown only locally, never sent anywhere).
+Choose your Google account. Your data will be stored in a Google Sheets file in your personal Google Drive.
 
-### 3. First-time setup (one time only)
-On your first sign-in you will be guided through a short setup:
+### 3. First-time setup (once only)
 
-1. Open the Sheets template (button provided)
+You will be guided through five steps:
+
+1. Open the Sheets template using the button provided
 2. Click **File → Make a copy** — this saves a personal copy to your Drive
 3. In your copy: go to **Extensions → Apps Script**
-4. Click **Deploy → New deployment** → choose **Web app** → set access to **Anyone** → click Deploy
+4. Click **Deploy → New deployment**, select **Web app**, set access to **Anyone**, click Deploy
 5. Copy the Web App URL that appears
-6. Return to the app, paste the URL, click Connect
+6. Return to the app, paste the URL, and click Connect
 
-This takes about 5 minutes and only needs to be done once. After that, the app connects to your spreadsheet automatically on every sign-in.
+This takes about five minutes and only needs to be done once.
 
-### 4. Install on your phone (optional but recommended)
+### 4. Install on your phone (recommended)
 
-**iPhone (Safari):**
-Tap the Share button → "Add to Home Screen" → Add
+**iPhone — Safari only:**
+Share button → Add to Home Screen → Add
 
-**Android (Chrome):**
-Tap the three-dot menu → "Add to Home screen" or "Install app"
-
-Once installed, EUC Tracker opens like a native app — no browser bar, full screen.
+**Android — Chrome:**
+Three-dot menu → Add to Home screen or Install app
 
 ---
 
 ## How to use it
 
-### Adding your EUC
-Go to the **Garage** tab → fill in the model name and your current odometer reading → tap "Add to Garage".
+### Logging an entry
+Go to **New Entry** → select your wheel → set the date and time → enter the current odometer reading → Save Entry.
 
-If your wheel is new, enter 0. If it already has mileage, enter the current ODM — the app will track distance from that point forward.
-
-### Logging a ride
-Go to the **New Ride** tab → select your EUC → set the date and time → enter the current odometer reading → tap "Save Ride".
-
-You do not need to remember how far you rode — just read the number off your wheel. The app calculates the distance automatically.
-
-### Viewing your stats
-The **Dashboard** shows your totals and recent activity. Tap **"All models"** in the hero to filter by a specific EUC. Tap the average metric to choose which average you want to see.
-
-The **Analytics** tab has three charts with date and model filters. Pinch to zoom in on any chart, drag to pan.
+You do not need to calculate the distance. Just read the number off your wheel.
 
 ### Editing or deleting an entry
-In the All Rides table on Dashboard, tap any row to open the entry detail. From there you can edit the remarks or delete the entry.
+In the All Entries table on Dashboard, tap any row to open the detail popup. You can edit date, time, ODM, and remarks. If your change affects later entries, all dependent calculations are updated automatically in both the app and Sheets.
+
+Deleting an entry also recalculates all later entries for that wheel.
+
+### Managing your fleet
+Go to **Garage**. Tap any wheel in the fleet list to edit its name, starting ODM, date added, or colour. Changes that affect calculations require confirmation. Colour changes and renames save immediately.
+
+### Dashboard filter
+Tap **Total km · All wheels** in the hero area to filter all dashboard stats by a specific wheel.
+
+### Average metric
+Tap the average box in the hero to choose which metric to display. Options include:
+- km/day (all time, this year, this month)
+- km/week or km/month
+- km/entry
+- Active days percentage
+- Longest riding streak
+
+### Analytics
+Use the date range and wheel filters to narrow your data. All three charts respond to filters. Pinch to zoom, drag to pan. Tap ↺ to reset a chart to its default view.
 
 ---
 
@@ -76,22 +88,20 @@ In the All Rides table on Dashboard, tap any row to open the entry detail. From 
 
 - Stored in a Google Sheets file in your Google Drive
 - You can open, edit, export, or delete it at any time directly in Sheets
-- The app only reads and writes to that one file
 - Signing out of the app does not delete your data
-- If you lose access to your phone, sign in again on any device — your data is still in Drive
+- Signing in again on any device restores your data automatically
 
 ---
 
 ## Privacy
 
 - Sign-in is handled entirely by Google — the app never receives your password
-- Your name is shown locally only
-- Your email is never stored, logged, or transmitted anywhere
+- Your name is shown locally only and is never sent anywhere
+- Your email address is never stored, logged, or transmitted
 - No analytics, no tracking, no ads
 
 ---
 
 ## Feedback and issues
 
-Found a bug or have a suggestion?
-Open an issue at: **[github.com/79mas/EUC-progress-tracking-PWA](https://github.com/79mas/EUC-progress-tracking-PWA)**
+[github.com/79mas/EUC-progress-tracking-PWA](https://github.com/79mas/EUC-progress-tracking-PWA)
