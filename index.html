@@ -638,6 +638,7 @@ input[type=number]{-moz-appearance:textfield}
 
 
 
+
 'use strict';
 
 // ─── CONFIG ─────────────────────────────────────────
@@ -911,7 +912,7 @@ function sortedRides(){
       const getKmd=(r)=>{
         const p=S.rides.filter(x=>x.model===r.model&&x.date<r.date).sort((a,b)=>b.date.localeCompare(a.date))[0];
         const d=p?Math.max(1,Math.round((safeDate(r.date)-safeDate(p.date))/86400000)):1;
-        return Math.round((r.km||0)/d);
+        return (r.km||0)/d;
       };
       va=getKmd(a); vb=getKmd(b);
     }
@@ -943,7 +944,7 @@ function renderTable(){
         km:(()=>{
           const prevE=S.rides.filter(x=>x.model===r.model&&x.date<r.date).sort((a,b)=>b.date.localeCompare(a.date))[0];
           const daysDiff=prevE?Math.max(1,Math.round((safeDate(r.date)-safeDate(prevE.date))/86400000)):1;
-          const kmd=Math.round((r.km||0)/daysDiff);
+          const kmd=((r.km||0)/daysDiff).toFixed(1);
           return '<td class="r" style="color:var(--cyan);font-weight:700">'+kmd+'</td>';
         })(),
         total:  '<td class="r">'+fmt(r.totalKm,1)+'</td>',
@@ -1710,6 +1711,7 @@ function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
