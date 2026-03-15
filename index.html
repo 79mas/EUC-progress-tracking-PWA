@@ -628,6 +628,7 @@ input[type=number]{-moz-appearance:textfield}
 
 
 
+
 'use strict';
 
 // ─── CONFIG ─────────────────────────────────────────
@@ -1179,7 +1180,7 @@ function openWheelPopup(name) {
   };
 }
 
-$('btn-add-euc').onclick$('btn-add-euc').onclick=async()=>{
+$('btn-add-euc').onclick=async()=>{
   const name=$('g-name').value.trim();
   const startOdm=parseFloat($('g-odm').value)||0;
   const dateAdded=$('g-date').value||today();
@@ -1672,6 +1673,7 @@ function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
