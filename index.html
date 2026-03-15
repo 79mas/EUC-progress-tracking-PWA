@@ -313,6 +313,26 @@ input[type=number]{-moz-appearance:textfield}
 /* MODEL MENU FIX — scrollable, max height */
 .model-pick-menu{max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 /* Tooltip persist fix */
+
+/* SWATCH GRID */
+.swatch-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.swatch{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+  transition:transform .15s,border-color .15s;flex-shrink:0}
+.swatch:hover{transform:scale(1.2)}
+.swatch.active{border-color:#fff;transform:scale(1.15)}
+/* CHART RESET BUTTON */
+.chart-wrap{position:relative}
+.chart-reset{position:absolute;top:6px;right:6px;background:var(--bg3);border:1px solid var(--soft);
+  border-radius:6px;color:var(--t2);font-size:11px;font-family:var(--M);padding:3px 8px;cursor:pointer;
+  transition:all .2s;z-index:10}
+.chart-reset:hover{border-color:var(--cyan);color:var(--cyan)}
+/* HERO clickable */
+.h4{cursor:pointer;transition:background .15s;border-radius:6px}
+.h4:hover{background:rgba(0,229,255,.06)}
+.hero-lbl{transition:color .15s}
+.hero-lbl:hover{color:var(--cyan)}
+/* Model label in hero */
+#d-model-label{color:var(--cyan)}
 </style>
 </head>
 <body>
@@ -422,7 +442,7 @@ input[type=number]{-moz-appearance:textfield}
         <div class="h4"><span class="h4-v" id="d-week">—</span><span class="h4-l">This week</span></div>
         <div class="h4"><span class="h4-v" id="d-month">—</span><span class="h4-l">This month</span></div>
         <div class="h4"><span class="h4-v" id="d-avg-all">—</span><span class="h4-l">Avg all time</span></div>
-        <div class="h4" id="avg-widget"><span class="h4-v avg-tap" id="avg-tap">—</span><span class="h4-l">km/day all time</span></div>
+        <div class="h4" id="avg-widget" style="cursor:pointer" onclick="toggleAvgMenu(event)"><span class="h4-v avg-tap" id="avg-tap">—</span><span class="h4-l">km/day all time</span></div>
       </div>
     </div>
 
@@ -472,7 +492,7 @@ input[type=number]{-moz-appearance:textfield}
       <div class="prev-row"><span>Trip distance</span><strong id="e-trip">—</strong></div>
       <div class="prev-row"><span>New total</span><strong id="e-total2">—</strong></div>
     </div>
-    <button class="btn" id="btn-save-ride">
+    <button class="btn" id="btn-save-entry">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       Save Ride
     </button>
@@ -500,6 +520,14 @@ input[type=number]{-moz-appearance:textfield}
       <div class="fg">
         <div class="fl">Date Added</div>
         <input type="date" id="g-date" class="fi"/>
+      </div>
+      <div class="fg">
+        <div class="fl">Colour</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div id="g-color-preview" style="width:28px;height:28px;border-radius:50%;background:#00e5ff;border:2px solid rgba(255,255,255,.2)"></div>
+          <input type="hidden" id="g-color-val" value="#00e5ff"/>
+        </div>
+        <div class="swatch-grid" id="g-color-swatches"></div>
       </div>
       <button class="btn" id="btn-add-euc">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -535,11 +563,20 @@ input[type=number]{-moz-appearance:textfield}
       <div class="kpi"><span class="kpi-v" id="a-best">—</span><span class="kpi-l">Best ride</span></div>
     </div>
     <div class="sl">RIDE DYNAMICS</div>
-    <div class="card chart-card"><canvas id="chart-dyn" height="200"></canvas></div>
+    <div class="card chart-card chart-wrap">
+      <button class="chart-reset" onclick="resetChart('chart-dyn')">↺ Reset</button>
+      <canvas id="chart-dyn" height="200"></canvas>
+    </div>
     <div class="sl">CUMULATIVE GROWTH</div>
-    <div class="card chart-card"><canvas id="chart-cum" height="200"></canvas></div>
+    <div class="card chart-card chart-wrap">
+      <button class="chart-reset" onclick="resetChart('chart-cum')">↺ Reset</button>
+      <canvas id="chart-cum" height="200"></canvas>
+    </div>
     <div class="sl">SEASONALITY</div>
-    <div class="card chart-card"><canvas id="chart-sea" height="200"></canvas></div>
+    <div class="card chart-card chart-wrap">
+      <button class="chart-reset" onclick="resetChart('chart-sea')">↺ Reset</button>
+      <canvas id="chart-sea" height="200"></canvas>
+    </div>
   </section>
 
   <!-- BOTTOM NAV -->
@@ -590,6 +627,7 @@ input[type=number]{-moz-appearance:textfield}
 
 
 
+
 'use strict';
 
 // ─── CONFIG ─────────────────────────────────────────
@@ -609,7 +647,7 @@ const S = {
   cols:      JSON.parse(localStorage.getItem('euc_cols') || '{"date":true,"model":true,"odm":false,"km":true,"total":true,"remarks":true}'),
 };
 
-const COLORS = ['#00e5ff','#ffb800','#00ff87','#ff4d6d','#a855f7','#f97316','#3b82f6','#84cc16'];
+const COLORS = ['#00e5ff', '#ffb800', '#00ff87', '#ff4d6d', '#a855f7', '#f97316', '#3b82f6', '#84cc16', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#06b6d4', '#d946ef', '#22c55e', '#fb923c', '#60a5fa', '#e879f9'];
 const COL_DEFS = [
   { key:'date',    label:'Date'     },
   { key:'model',   label:'Wheel'    },
@@ -645,7 +683,9 @@ function toast(msg, type='') {
   clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3200);
 }
 function mcolor(name) {
-  const i=S.models.findIndex(m=>m.name===name);
+  const m = S.models.find(x=>x.name===name);
+  if (m && m.color) return m.color;
+  const i = S.models.findIndex(x=>x.name===name);
   return COLORS[i%COLORS.length]||'#00e5ff';
 }
 function lastOdm(model) {
@@ -917,7 +957,7 @@ function renderEntry() {
   $('e-date').value=nowISO();
   $('e-odm').oninput=preview;
 
-  const btn=$('btn-save-ride');
+  const btn=$('btn-save-entry');
   btn.onclick=async()=>{
     const dateVal=$('e-date').value;
     const odmVal=parseFloat($('e-odm').value);
@@ -944,7 +984,7 @@ function renderEntry() {
 
     btn.classList.add('loading');
     try {
-      await apiCall({action:'addRide',...ride});
+      await apiCall({action:'addEntry',...ride});
       S.rides.push(ride);
       toast(`+${fmt(km,1)} km saved ✓`,'ok');
       $('e-odm').value=''; $('e-remarks').value='';
@@ -958,20 +998,188 @@ function renderEntry() {
 // ─── GARAGE ──────────────────────────────────────────
 function renderGarage(){
   $('g-date').value=today();
-  $('garage-list').innerHTML=S.models.length?S.models.map((m,i)=>{
-    const rs=S.rides.filter(r=>r.model===m.name).sort((a,b)=>a.date.localeCompare(b.date));
-    const total=rs.length?rs[rs.length-1].totalKm:0;
-    const c=COLORS[i%COLORS.length];
-    return `<div class="gi">
-      <div class="gdot" style="background:${c};box-shadow:0 0 8px ${c}44"></div>
-      <div class="ginfo"><div class="gname">${m.name}</div>
-      <div class="gmeta">Added ${fdate(m.dateAdded)} · ${rs.length} rides · start: ${fmt(m.startOdm,1)} km</div></div>
-      <div class="gkm">${fmt(total,0)} km</div>
+
+  // Colour picker swatches
+  const swatchWrap = $('g-color-swatches');
+  if (swatchWrap && !swatchWrap.dataset.built) {
+    swatchWrap.dataset.built='1';
+    swatchWrap.innerHTML = COLORS.map(c=>
+      `<div class="swatch" data-c="${c}" style="background:${c}" title="${c}"></div>`
+    ).join('');
+    swatchWrap.querySelectorAll('.swatch').forEach(s=>s.addEventListener('click',()=>{
+      swatchWrap.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active'));
+      s.classList.add('active');
+      $('g-color-val').value = s.dataset.c;
+      $('g-color-preview').style.background = s.dataset.c;
+    }));
+    // Default first colour
+    swatchWrap.querySelector('.swatch')?.classList.add('active');
+    if($('g-color-val')) $('g-color-val').value = COLORS[0];
+    if($('g-color-preview')) $('g-color-preview').style.background = COLORS[0];
+  }
+
+  const list = $('garage-list');
+  if (!S.models.length) {
+    list.innerHTML='<div class="card"><p class="empty">No wheels yet — add your first above!</p></div>';
+    return;
+  }
+  list.innerHTML = S.models.map((m,i)=>{
+    const rs    = S.rides.filter(r=>r.model===m.name).sort((a,b)=>a.date.localeCompare(b.date));
+    const total = rs.length ? rs[rs.length-1].totalKm : 0;
+    const c     = m.color || COLORS[i%COLORS.length];
+    return `<div class="gi" data-wname="${m.name}">
+      <div class="gdot" style="background:${c};box-shadow:0 0 8px ${c}66;cursor:pointer" onclick="openWheelPopup('${m.name.replace(/'/g,"\'")}')"></div>
+      <div class="ginfo" style="cursor:pointer" onclick="openWheelPopup('${m.name.replace(/'/g,"\'")}')">
+        <div class="gname">${m.name}</div>
+        <div class="gmeta">Added ${fdate(m.dateAdded)} · ${rs.length} entries · start: ${fmt(m.startOdm,1)} km</div>
+      </div>
+      <div class="gkm" style="color:${c}">${fmt(total,1)} km</div>
     </div>`;
-  }).join(''):'<div class="card"><p class="empty">No wheels yet — add your first wheel above!</p></div>';
+  }).join('');
 }
 
-$('btn-add-euc').onclick=async()=>{
+function openWheelPopup(name) {
+  const m = S.models.find(x=>x.name===name);
+  if (!m) return;
+  const bg = $('popup-bg');
+  bg.classList.remove('hidden');
+
+  const rs    = S.rides.filter(r=>r.model===m.name).sort((a,b)=>a.date.localeCompare(b.date));
+  const total = rs.length ? rs[rs.length-1].totalKm : 0;
+  const c     = m.color || mcolor(m.name);
+  const colorSwatches = COLORS.map(col=>
+    `<div class="swatch${col===c?' active':''}" data-c="${col}" style="background:${col}"></div>`
+  ).join('');
+
+  bg.querySelector('.popup').innerHTML = `
+    <div class="pop-header">
+      <span style="font-size:17px;font-weight:700;color:${c}">${m.name}</span>
+      <button class="pop-close-btn" id="pop-close">×</button>
+    </div>
+    <div class="pop-section-label">Edit wheel</div>
+    <div class="pop-edit-row">
+      <div class="pop-edit-label">Wheel name</div>
+      <input type="text" id="pw-name" class="pop-edit-input" value="${m.name}"/>
+    </div>
+    <div class="pop-edit-row">
+      <div class="pop-edit-label">Starting odometer (km)</div>
+      <input type="number" id="pw-odm" class="pop-edit-input" inputmode="numeric" step="0.1" value="${m.startOdm||0}"/>
+    </div>
+    <div class="pop-edit-row">
+      <div class="pop-edit-label">Date added</div>
+      <input type="date" id="pw-date" class="pop-edit-input" value="${m.dateAdded||''}"/>
+    </div>
+    <div class="pop-edit-row">
+      <div class="pop-edit-label">Colour</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <div id="pw-color-preview" style="width:28px;height:28px;border-radius:50%;background:${c};border:2px solid rgba(255,255,255,.2)"></div>
+        <input type="hidden" id="pw-color-val" value="${c}"/>
+      </div>
+      <div class="swatch-grid" id="pw-swatches">${colorSwatches}</div>
+    </div>
+    <div class="pop-section-label">Stats</div>
+    <div class="pop-stats">
+      <div class="pop-row"><span>Total distance</span><strong>${fmt(total,1)} km</strong></div>
+      <div class="pop-row"><span>Entries</span><strong>${rs.length}</strong></div>
+    </div>
+    <div class="pop-actions" style="margin-top:14px">
+      <button class="btn-del" id="pw-delete">Delete wheel</button>
+      <button class="btn-edit-r" id="pw-save">Save changes</button>
+    </div>
+  `;
+
+  // Swatch picker
+  bg.querySelectorAll('#pw-swatches .swatch').forEach(s=>s.addEventListener('click',()=>{
+    bg.querySelectorAll('#pw-swatches .swatch').forEach(x=>x.classList.remove('active'));
+    s.classList.add('active');
+    $('pw-color-val').value = s.dataset.c;
+    $('pw-color-preview').style.background = s.dataset.c;
+  }));
+
+  $('pop-close').onclick = ()=>bg.classList.add('hidden');
+  bg.onclick = e=>{ if(e.target===bg) bg.classList.add('hidden'); };
+
+  // Save
+  $('pw-save').onclick = async ()=>{
+    const newName    = $('pw-name').value.trim();
+    const newOdm     = parseFloat($('pw-odm').value)||0;
+    const newDate    = $('pw-date').value;
+    const newColor   = $('pw-color-val').value;
+
+    if (!newName) return toast('Name required','err');
+
+    const nameChanged  = newName !== m.name;
+    const odmChanged   = newOdm  !== m.startOdm;
+    const dateChanged  = newDate !== m.dateAdded;
+    const colorChanged = newColor !== c;
+    const needsRecalc  = odmChanged || dateChanged;
+
+    const doSave = async ()=>{
+      const btn = $('pw-save'); btn.classList.add('loading');
+      try {
+        // Update name in all entries if changed
+        if (nameChanged) {
+          S.rides.filter(r=>r.model===m.name).forEach(r=>r.model=newName);
+        }
+        m.name      = newName;
+        m.startOdm  = newOdm;
+        m.dateAdded = newDate;
+        m.color     = newColor;
+
+        if (needsRecalc) {
+          recalcChain(newName);
+          // Push all entries to Sheets
+          const affected = S.rides.filter(r=>r.model===newName).sort((a,b)=>a.date.localeCompare(b.date));
+          for (const r of affected) {
+            await apiCall({action:'editEntry',id:r.id,date:r.date,inputOdm:r.inputOdm,
+              fromKm:r.fromKm,toKm:r.inputOdm,km:r.km,totalKm:r.totalKm,
+              eucTime:r.eucTime,staVid:r.staVid,remarks:r.remarks});
+          }
+        }
+        await apiCall({action:'editWheel',name:m.name,oldName:nameChanged?(newName):m.name,
+          startOdm:m.startOdm,dateAdded:m.dateAdded,color:m.color});
+        bg.classList.add('hidden');
+        renderAll();
+        toast('Wheel updated ✓','ok');
+      } catch(e){ toast('Error: '+e.message,'err'); }
+      finally { btn.classList.remove('loading'); }
+    };
+
+    if (needsRecalc) {
+      openConfirm(
+        'This will affect all calculations',
+        'Changing the starting ODM or date will recalculate all entries for this wheel. Continue?',
+        doSave
+      );
+    } else {
+      doSave();
+    }
+  };
+
+  // Delete wheel
+  $('pw-delete').onclick = ()=>{
+    bg.classList.add('hidden');
+    openConfirm(
+      'Delete this wheel?',
+      `"${m.name}" and all its ${rs.length} entries will be permanently deleted.`,
+      async ()=>{
+        try {
+          // Delete all entries for this wheel
+          for (const r of rs) {
+            await apiCall({action:'deleteEntry',id:r.id});
+          }
+          await apiCall({action:'deleteWheel',name:m.name});
+          S.rides  = S.rides.filter(r=>r.model!==m.name);
+          S.models = S.models.filter(x=>x.name!==m.name);
+          renderAll();
+          toast('Wheel deleted ✓','ok');
+        } catch(e){ toast('Error: '+e.message,'err'); }
+      }
+    );
+  };
+}
+
+$('btn-add-euc').onclick$('btn-add-euc').onclick=async()=>{
   const name=$('g-name').value.trim();
   const startOdm=parseFloat($('g-odm').value)||0;
   const dateAdded=$('g-date').value||today();
@@ -980,7 +1188,7 @@ $('btn-add-euc').onclick=async()=>{
   const btn=$('btn-add-euc'); btn.classList.add('loading');
   try {
     await apiCall({action:'addModel',name,startOdm,dateAdded});
-    S.models.push({name,startOdm,dateAdded});
+    S.models.push({name,startOdm,dateAdded,color});
     toast(`${name} added ✓`,'ok');
     $('g-name').value=''; $('g-odm').value='';
     renderGarage();
@@ -1069,7 +1277,7 @@ function drawSea(rides,models){
       data:months.map((_,mi)=>rides.filter(r=>r.model===m&&parseInt(r.date.slice(5,7))-1===mi).reduce((s,r)=>s+(r.km||0),0)),
       backgroundColor:mcolor(m)+'bb',borderColor:mcolor(m),borderWidth:1,borderRadius:3}))},
     options:{...cOpts(),scales:{x:sOpts(),y:sOpts()},
-      plugins:{zoom:{zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"},pan:{enabled:true,mode:"x"}},
+      plugins:{zoom:{limits:{x:{minRange:1},y:{minRange:1}},zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"xy",scaleMode:"xy"},pan:{enabled:true,mode:"xy"}},zoom:{zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"},pan:{enabled:true,mode:"x"}},
 zoom:{zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"},pan:{enabled:true,mode:"x"}},
 zoom:{zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"xy"},pan:{enabled:true,mode:"xy"}},
 ...cOpts().plugins,...(models.length>1?{tooltip:{mode:'index',intersect:false}}:{})}}});
@@ -1157,6 +1365,10 @@ function openRidePopup(ride){
   };
 
   // Save
+  // Check if this is the last entry for this model
+  const modelEntries = S.rides.filter(r=>r.model===ride.model).sort((a,b)=>a.date.localeCompare(b.date));
+  const isLastEntry  = modelEntries.length && modelEntries[modelEntries.length-1].id === ride.id;
+
   $('pop-save').onclick = async () => {
     const newDate    = $('pop-date-input').value.replace('T',' ');
     const newOdm     = parseFloat($('pop-odm-input').value);
@@ -1185,25 +1397,30 @@ function openRidePopup(ride){
     const btn = $('pop-save');
     btn.classList.add('loading');
     try {
-      // Push edited entry + all later entries in chain to Sheets
-      const affected = S.rides
-        .filter(r=>r.model===ride.model && r.date>=ride.date)
-        .sort((a,b)=>a.date.localeCompare(b.date));
-      for (const r of affected) {
-        await apiCall({
-          action:'editEntry', id:r.id,
-          date:r.date, inputOdm:r.inputOdm,
-          fromKm:r.fromKm, toKm:r.inputOdm,
-          km:r.km, totalKm:r.totalKm,
-          eucTime:r.eucTime, staVid:r.staVid,
-          remarks:r.remarks,
-        });
-      }
-      bg.classList.add('hidden');
-      renderAll();
-      toast('Entry updated ✓','ok');
+      const doSaveEntry = async ()=>{
+        const btn2=$('pop-save'); btn2.classList.add('loading');
+        try {
+          const affected2 = S.rides
+            .filter(r=>r.model===ride.model && r.date>=ride.date)
+            .sort((a,b)=>a.date.localeCompare(b.date));
+          for (const r of affected2) {
+            await apiCall({action:'editEntry',id:r.id,date:r.date,inputOdm:r.inputOdm,
+              fromKm:r.fromKm,toKm:r.inputOdm,km:r.km,totalKm:r.totalKm,
+              eucTime:r.eucTime,staVid:r.staVid,remarks:r.remarks});
+          }
+          bg.classList.add('hidden'); renderAll(); toast('Entry updated ✓','ok');
+        } catch(e){ toast('Save error: '+e.message,'err'); }
+        finally { btn2.classList.remove('loading'); }
+      };
+      if (!isLastEntry) {
+        bg.classList.add('hidden');
+        openConfirm(
+          'This will affect all calculations',
+          'Changes to this entry will recalculate all later entries for this wheel. Continue?',
+          doSaveEntry
+        );
+      } else { doSaveEntry(); }
     } catch(e){ toast('Save error: '+e.message,'err'); }
-    finally { btn.classList.remove('loading'); }
   };
 
   // Delete
@@ -1366,11 +1583,11 @@ function renderAvgWidget() {
   const el = $('avg-widget');
   if (!el) return;
   const { val, label } = calcAvg(AVG_KEY);
-  el.innerHTML = `<span class="h4-v avg-tap" id="avg-tap">${val}</span><span class="h4-l">${label}</span>`;
-  $('avg-tap').onclick = toggleAvgMenu;
+  el.innerHTML = `<span class="h4-v" id="avg-tap">${val}</span><span class="h4-l">${label}</span>`;
+  // avg tap handled by parent div onclick
 }
 
-function toggleAvgMenu() {
+function toggleAvgMenu(e) { if(e) e.stopPropagation();
   let menu = $('avg-menu');
   if (!menu) {
     // Build menu
@@ -1430,6 +1647,13 @@ document.addEventListener('touchstart', (e) => {
 // Register zoom plugin if available
 if (window.ChartZoom) Chart.register(window.ChartZoom);
 
+
+function resetChart(id) {
+  const keyMap = {'chart-dyn':'dyn','chart-cum':'cum','chart-sea':'sea'};
+  const ch = S.charts[keyMap[id]];
+  if (ch && ch.resetZoom) ch.resetZoom();
+}
+
 function renderAll(){
   renderDashboard();
   renderAvgWidget();
@@ -1448,6 +1672,7 @@ function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
