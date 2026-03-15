@@ -429,7 +429,7 @@ input[type=number]{-moz-appearance:textfield}
     </div>
     <div class="hero">
       <div class="hero-2col">
-        <div class="hero-metric" id="d-total-wrap">
+        <div class="hero-metric" id="d-total-wrap" style="position:relative">
           <div class="hero-lbl">Total km · <span class="hero-tap" id="d-model-label" onclick="toggleModelMenu()">All wheels</span></div>
           <div class="hero-v" id="d-total">—</div>
         </div>
@@ -629,6 +629,9 @@ input[type=number]{-moz-appearance:textfield}
 
 
 
+
+
+
 'use strict';
 
 // ─── CONFIG ─────────────────────────────────────────
@@ -704,15 +707,23 @@ function showScreen(id) {
 
 // ─── AUTH ────────────────────────────────────────────
 function initGIS() {
+  // ALWAYS show login — every session must authenticate
+  showScreen('screen-login');
   if (!CLIENT_ID) {
-    // No Client ID — show login with message
-    showScreen('screen-login');
     $('g-btn').innerHTML='<p style="color:var(--amber);font-size:12px;text-align:center;font-family:var(--M);line-height:1.5">⚙️ Set CLIENT_ID in index.html<br/>See README.md for instructions</p>';
     return;
   }
-  google.accounts.id.initialize({ client_id:CLIENT_ID, callback:onSignIn, auto_select:false });
-  google.accounts.id.renderButton($('g-btn'),{ theme:'filled_black',size:'large',width:280,text:'signin_with',shape:'pill' });
-  showScreen('screen-login');
+  google.accounts.id.initialize({
+    client_id:    CLIENT_ID,
+    callback:     onSignIn,
+    auto_select:  false,      // never auto-login
+    cancel_on_tap_outside: false,
+  });
+  google.accounts.id.renderButton($('g-btn'),{
+    theme:'filled_black', size:'large', width:280, text:'signin_with', shape:'pill'
+  });
+  // Explicitly revoke any cached session so Google always shows the picker
+  google.accounts.id.disableAutoSelect();
 }
 
 function onSignIn(resp) {
@@ -730,8 +741,14 @@ function onSignIn(resp) {
 
 function signOut() {
   S.user=null; S.rides=[]; S.models=[];
-  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+  // Clear Google session completely
+  if (window.google?.accounts?.id) {
+    google.accounts.id.disableAutoSelect();
+    google.accounts.id.revoke(S.user?.email || '', ()=>{});
+  }
+  // Re-initialize GIS so login button reappears fresh
   showScreen('screen-login');
+  if (window._gisReady) initGIS();
   toast('Signed out');
 }
 
@@ -1039,20 +1056,20 @@ function renderGarage(){
   }).join('');
 }
 
-function openWheelPopup(name) {
-  const m = S.models.find(x=>x.name===name);
-  if (!m) return;
-  const bg = $('popup-bg');
+function openWheelPopup(name){
+  const m=S.models.find(x=>x.name===name);
+  if(!m) return;
+  const bg=$('popup-bg');
   bg.classList.remove('hidden');
 
-  const rs    = S.rides.filter(r=>r.model===m.name).sort((a,b)=>a.date.localeCompare(b.date));
-  const total = rs.length ? rs[rs.length-1].totalKm : 0;
-  const c     = m.color || mcolor(m.name);
-  const colorSwatches = COLORS.map(col=>
+  const rs=S.rides.filter(r=>r.model===m.name).sort((a,b)=>a.date.localeCompare(b.date));
+  const total=rs.length?rs[rs.length-1].totalKm:0;
+  const c=m.color||mcolor(m.name);
+  const colorSwatches=COLORS.map(col=>
     `<div class="swatch${col===c?' active':''}" data-c="${col}" style="background:${col}"></div>`
   ).join('');
 
-  bg.querySelector('.popup').innerHTML = `
+  bg.querySelector('.popup').innerHTML=`
     <div class="pop-header">
       <span style="font-size:17px;font-weight:700;color:${c}">${m.name}</span>
       <button class="pop-close-btn" id="pop-close">×</button>
@@ -1072,7 +1089,7 @@ function openWheelPopup(name) {
     </div>
     <div class="pop-edit-row">
       <div class="pop-edit-label">Colour</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <div id="pw-color-preview" style="width:28px;height:28px;border-radius:50%;background:${c};border:2px solid rgba(255,255,255,.2)"></div>
         <input type="hidden" id="pw-color-val" value="${c}"/>
       </div>
@@ -1089,96 +1106,88 @@ function openWheelPopup(name) {
     </div>
   `;
 
-  // Swatch picker
   bg.querySelectorAll('#pw-swatches .swatch').forEach(s=>s.addEventListener('click',()=>{
     bg.querySelectorAll('#pw-swatches .swatch').forEach(x=>x.classList.remove('active'));
     s.classList.add('active');
-    $('pw-color-val').value = s.dataset.c;
-    $('pw-color-preview').style.background = s.dataset.c;
+    $('pw-color-val').value=s.dataset.c;
+    $('pw-color-preview').style.background=s.dataset.c;
   }));
 
-  $('pop-close').onclick = ()=>bg.classList.add('hidden');
-  bg.onclick = e=>{ if(e.target===bg) bg.classList.add('hidden'); };
+  $('pop-close').onclick=()=>bg.classList.add('hidden');
+  bg.onclick=e=>{if(e.target===bg)bg.classList.add('hidden');};
 
-  // Save
-  $('pw-save').onclick = async ()=>{
-    const newName    = $('pw-name').value.trim();
-    const newOdm     = parseFloat($('pw-odm').value)||0;
-    const newDate    = $('pw-date').value;
-    const newColor   = $('pw-color-val').value;
+  $('pw-save').onclick=async()=>{
+    const newName =($('pw-name').value||'').trim();
+    const newOdm  =parseFloat($('pw-odm').value)||0;
+    const newDate =$('pw-date').value||'';
+    const newColor=$('pw-color-val').value||c;
+    if(!newName) return toast('Name required','err');
 
-    if (!newName) return toast('Name required','err');
+    // What changed?
+    const nameChanged =newName !==m.name;
+    const odmChanged  =newOdm  !==m.startOdm;
+    const dateChanged =newDate !==m.dateAdded;
+    const colorChanged=newColor!==c;
+    // Only ODM or dateAdded change affects calculations
+    const needsRecalc =odmChanged||dateChanged;
 
-    const nameChanged  = newName !== m.name;
-    const odmChanged   = newOdm  !== m.startOdm;
-    const dateChanged  = newDate !== m.dateAdded;
-    const colorChanged = newColor !== c;
-    const needsRecalc  = odmChanged || dateChanged;
-
-    const doSave = async ()=>{
-      const btn = $('pw-save'); btn.classList.add('loading');
-      try {
-        // Update name in all entries if changed
-        if (nameChanged) {
-          S.rides.filter(r=>r.model===m.name).forEach(r=>r.model=newName);
-        }
-        m.name      = newName;
-        m.startOdm  = newOdm;
-        m.dateAdded = newDate;
-        m.color     = newColor;
-
-        if (needsRecalc) {
-          recalcChain(newName);
-          // Push all entries to Sheets
-          const affected = S.rides.filter(r=>r.model===newName).sort((a,b)=>a.date.localeCompare(b.date));
-          for (const r of affected) {
+    const doSave=async()=>{
+      const btn=$('pw-save'); if(btn) btn.classList.add('loading');
+      try{
+        if(nameChanged) S.rides.filter(r=>r.model===m.name).forEach(r=>r.model=newName);
+        m.name=newName; m.startOdm=newOdm; m.dateAdded=newDate; m.color=newColor;
+        if(needsRecalc){
+          // recalcChain needs to be accessible — defined inside openRidePopup so copy here
+          const modelRides=S.rides.filter(r=>r.model===newName).sort((a,b)=>a.date.localeCompare(b.date));
+          const startOdm=newOdm, firstDate=newDate;
+          modelRides.forEach((r,i)=>{
+            r.fromKm =i===0?startOdm:modelRides[i-1].inputOdm;
+            r.km     =Math.max(0,r.inputOdm-r.fromKm);
+            r.totalKm=r.inputOdm-startOdm;
+            const days=Math.max(1,Math.round((new Date(r.date.slice(0,10))-new Date(firstDate))/86400000)+1);
+            r.eucTime=days; r.staVid=r.totalKm/days;
+          });
+          for(const r of modelRides){
             await apiCall({action:'editEntry',id:r.id,date:r.date,inputOdm:r.inputOdm,
               fromKm:r.fromKm,toKm:r.inputOdm,km:r.km,totalKm:r.totalKm,
               eucTime:r.eucTime,staVid:r.staVid,remarks:r.remarks});
           }
         }
-        await apiCall({action:'editWheel',name:m.name,oldName:nameChanged?(newName):m.name,
+        await apiCall({action:'editWheel',name:m.name,oldName:nameChanged?newName:m.name,
           startOdm:m.startOdm,dateAdded:m.dateAdded,color:m.color});
-        bg.classList.add('hidden');
-        renderAll();
-        toast('Wheel updated ✓','ok');
-      } catch(e){ toast('Error: '+e.message,'err'); }
-      finally { btn.classList.remove('loading'); }
+        bg.classList.add('hidden'); renderAll(); toast('Wheel updated ✓','ok');
+      }catch(e){toast('Error: '+e.message,'err');}
+      finally{const b=$('pw-save');if(b)b.classList.remove('loading');}
     };
 
-    if (needsRecalc) {
+    if(needsRecalc){
+      bg.classList.add('hidden');
       openConfirm(
         'This will affect all calculations',
-        'Changing the starting ODM or date will recalculate all entries for this wheel. Continue?',
+        'Changing starting ODM or date added will recalculate all entries for this wheel. Continue?',
         doSave
       );
-    } else {
-      doSave();
-    }
+    } else { doSave(); }
   };
 
-  // Delete wheel
-  $('pw-delete').onclick = ()=>{
+  $('pw-delete').onclick=()=>{
     bg.classList.add('hidden');
     openConfirm(
-      'Delete this wheel?',
-      `"${m.name}" and all its ${rs.length} entries will be permanently deleted.`,
-      async ()=>{
-        try {
-          // Delete all entries for this wheel
-          for (const r of rs) {
-            await apiCall({action:'deleteEntry',id:r.id});
-          }
+      'Delete "'+m.name+'"?',
+      'This wheel and all '+rs.length+' entries will be permanently deleted.',
+      async()=>{
+        try{
+          for(const r of rs) await apiCall({action:'deleteEntry',id:r.id});
           await apiCall({action:'deleteWheel',name:m.name});
-          S.rides  = S.rides.filter(r=>r.model!==m.name);
-          S.models = S.models.filter(x=>x.name!==m.name);
-          renderAll();
-          toast('Wheel deleted ✓','ok');
-        } catch(e){ toast('Error: '+e.message,'err'); }
+          S.rides =S.rides.filter(r=>r.model!==m.name);
+          S.models=S.models.filter(x=>x.name!==m.name);
+          renderAll(); toast('Wheel deleted ✓','ok');
+        }catch(e){toast('Error: '+e.message,'err');}
       }
     );
   };
 }
+
 
 $('btn-add-euc').onclick=async()=>{
   const name=$('g-name').value.trim();
@@ -1249,7 +1258,7 @@ function drawDyn(rides){
       data:rides.filter(r=>r.model===m).map(r=>({x:r.date.slice(0,10),y:r.km||0})),
       borderColor:mcolor(m),backgroundColor:mcolor(m)+'22',pointBackgroundColor:mcolor(m),
       pointRadius:4,tension:0.3,fill:false,borderWidth:2}))},
-    options:{...cOpts(),scales:{x:{type:'time',time:{unit:'day'},...sOpts()},y:sOpts()}}});
+    options:{...cOpts(),plugins:{...cOpts().plugins,zoom:{limits:{x:{minRange:1},y:{minRange:1}},zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'xy',scaleMode:'xy'},pan:{enabled:true,mode:'xy'}},},scales:{x:{type:'time',time:{unit:'day'},...sOpts()},y:sOpts()}}});
 }
 
 function drawCum(rides,models){
@@ -1267,7 +1276,7 @@ function drawCum(rides,models){
   if(models.length>1) datasets.push({label:'All',data:dates.map(d=>({x:d,y:combined[d]||0})),
     borderColor:'#fff',backgroundColor:'transparent',borderWidth:2,borderDash:[6,3],pointRadius:0,tension:0.4});
   S.charts.cum=new Chart($('chart-cum'),{type:'line',data:{datasets},
-    options:{...cOpts(),scales:{x:{type:'time',time:{unit:'month'},...sOpts()},y:sOpts()}}});
+    options:{...cOpts(),plugins:{...cOpts().plugins,zoom:{limits:{x:{minRange:1},y:{minRange:1}},zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'xy',scaleMode:'xy'},pan:{enabled:true,mode:'xy'}},},scales:{x:{type:'time',time:{unit:'month'},...sOpts()},y:sOpts()}}});
 }
 
 function drawSea(rides,models){
@@ -1588,42 +1597,47 @@ function renderAvgWidget() {
   // avg tap handled by parent div onclick
 }
 
-function toggleAvgMenu(e) { if(e) e.stopPropagation();
-  let menu = $('avg-menu');
-  if (!menu) {
-    // Build menu
-    menu = document.createElement('div');
-    menu.id = 'avg-menu';
-    menu.className = 'avg-menu';
-    let lastGroup = '';
-    AVG_OPTIONS.forEach(opt => {
-      if (opt.group !== lastGroup) {
-        const gl = document.createElement('div');
-        gl.className = 'avg-group-label';
-        gl.textContent = opt.group;
-        menu.appendChild(gl);
-        lastGroup = opt.group;
-      }
-      const item = document.createElement('div');
-      item.className = 'avg-item' + (AVG_KEY===opt.key?' selected':'');
-      item.textContent = opt.label;
-      item.dataset.key = opt.key;
-      item.onclick = (e) => {
-        e.stopPropagation();
-        AVG_KEY = opt.key;
-        localStorage.setItem('euc_avg', AVG_KEY);
-        menu.remove();
-        renderAvgWidget();
-      };
-      menu.appendChild(item);
-    });
-    const wrap = $('avg-tap').closest('.h4') || $('avg-tap').parentElement;
-    wrap.style.position = 'relative';
-    wrap.appendChild(menu);
-    setTimeout(() => document.addEventListener('click', closeAvgMenu, {once:true}), 10);
-  } else {
-    menu.remove();
-  }
+function toggleAvgMenu(e){
+  if(e){e.stopPropagation();}
+  let menu=$('avg-menu');
+  if(menu){menu.remove();return;}
+
+  menu=document.createElement('div');
+  menu.id='avg-menu';
+  // Fixed position bottom of screen — always fully visible
+  menu.style.cssText='position:fixed;bottom:calc(var(--nav) + var(--safe) + 8px);left:50%;transform:translateX(-50%);z-index:800;width:min(90vw,280px);background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 8px 32px rgba(0,0,0,.6);max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;';
+
+  let lastGroup='';
+  AVG_OPTIONS.forEach(opt=>{
+    if(opt.group!==lastGroup){
+      const gl=document.createElement('div');
+      gl.style.cssText='font-family:var(--M);font-size:9px;color:var(--t3);letter-spacing:2px;padding:6px 10px 3px;text-transform:uppercase';
+      gl.textContent=opt.group;
+      menu.appendChild(gl);
+      lastGroup=opt.group;
+    }
+    const item=document.createElement('div');
+    item.style.cssText='padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:'+(AVG_KEY===opt.key?'var(--cyan)':'var(--t2)')+';display:flex;justify-content:space-between;align-items:center;';
+    item.textContent=opt.label;
+    if(AVG_KEY===opt.key){
+      const chk=document.createElement('span');
+      chk.textContent='✓'; chk.style.cssText='color:var(--cyan);font-size:11px';
+      item.appendChild(chk);
+    }
+    item.addEventListener('touchstart',()=>item.style.background='var(--cdim)',{passive:true});
+    item.addEventListener('touchend',()=>item.style.background='',{passive:true});
+    item.onclick=(ev)=>{
+      ev.stopPropagation();
+      AVG_KEY=opt.key;
+      localStorage.setItem('euc_avg',AVG_KEY);
+      menu.remove();
+      renderAvgWidget();
+    };
+    menu.appendChild(item);
+  });
+
+  document.body.appendChild(menu);
+  setTimeout(()=>document.addEventListener('click',()=>{const m=$('avg-menu');if(m)m.remove();},{once:true}),50);
 }
 
 function closeAvgMenu() {
@@ -1673,6 +1687,9 @@ function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+
+
 
 
 
