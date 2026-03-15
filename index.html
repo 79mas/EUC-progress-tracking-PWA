@@ -634,6 +634,9 @@ input[type=number]{-moz-appearance:textfield}
 
 
 
+
+
+
 'use strict';
 
 // ─── CONFIG ─────────────────────────────────────────
@@ -1169,11 +1172,7 @@ function openWheelPopup(name){
 
     if(needsRecalc){
       bg.classList.add('hidden');
-      openConfirm(
-        'This will affect all calculations',
-        'Changing starting ODM or date added will recalculate all entries for this wheel. Continue?',
-        doSave
-      );
+      openConfirm('This will affect all calculations','Changing starting ODM or date added will recalculate all entries for this wheel. Continue?',doSave,{yesLabel:'Continue',yesClass:'btn-edit-r'});
     } else { doSave(); }
   };
 
@@ -1432,11 +1431,7 @@ function openRidePopup(ride){
       };
       if (!isLastEntry) {
         bg.classList.add('hidden');
-        openConfirm(
-          'This will affect all calculations',
-          'Changes to this entry will recalculate all later entries for this wheel. Continue?',
-          doSaveEntry
-        );
+        openConfirm('This will affect all calculations','Changes to this entry will recalculate all later entries for this wheel. Continue?',doSaveEntry,{yesLabel:'Continue',yesClass:'btn-edit-r'});
       } else { doSaveEntry(); }
     } catch(e){ toast('Save error: '+e.message,'err'); }
   };
@@ -1474,12 +1469,15 @@ function openRidePopup(ride){
   };
 }
 
-function openConfirm(title,msg,onYes){
+function openConfirm(title,msg,onYes,opts){
   const bg=$('confirm-bg');
   bg.querySelector('#conf-title').textContent=title;
   bg.querySelector('#conf-msg').textContent=msg;
+  const yesBtn=bg.querySelector('#conf-yes');
+  yesBtn.textContent=opts?.yesLabel||'Delete';
+  yesBtn.className=opts?.yesClass||'btn-del';
   bg.classList.remove('hidden');
-  bg.querySelector('#conf-yes').onclick=()=>{bg.classList.add('hidden');onYes();};
+  yesBtn.onclick=()=>{bg.classList.add('hidden');onYes();};
   bg.querySelector('#conf-no').onclick=()=>bg.classList.add('hidden');
 }
 
@@ -1553,17 +1551,17 @@ function calcAvg(key) {
   const ys = yearStart(), ms = monthStart();
   const dates = rides.map(r=>r.date.slice(0,10)).sort();
   const firstDate = dates[0], lastDate = dates[dates.length-1];
-  const totalDays = Math.max(1, Math.round((new Date(lastDate)-new Date(firstDate))/86400000)+1);
+  const totalDays = Math.max(1, Math.round((new Date(lastDate.replace(/-/g,'/'))-new Date(firstDate.replace(/-/g,'\/')))/86400000)+1);
   const totalKm = rides.reduce((s,r)=>s+(r.km||0),0);
 
   const yRides = rides.filter(r=>r.date>=ys);
   const yDates = yRides.map(r=>r.date.slice(0,10)).sort();
-  const yDays  = yDates.length ? Math.max(1,Math.round((new Date(yDates[yDates.length-1])-new Date(yDates[0]))/86400000)+1) : 1;
+  const yDays  = yDates.length ? Math.max(1,Math.round((new Date(yDates[yDates.length-1].replace(/-/g,'/'))-new Date(yDates[0].replace(/-/g,'\/')))/86400000)+1) : 1;
   const yKm    = yRides.reduce((s,r)=>s+(r.km||0),0);
 
   const mRides = rides.filter(r=>r.date.slice(0,7)===ms.slice(0,7));
   const mDates = mRides.map(r=>r.date.slice(0,10)).sort();
-  const mDays  = mDates.length ? Math.max(1,Math.round((new Date(mDates[mDates.length-1])-new Date(mDates[0]))/86400000)+1) : 1;
+  const mDays  = mDates.length ? Math.max(1,Math.round((new Date(mDates[mDates.length-1].replace(/-/g,'/'))-new Date(mDates[0].replace(/-/g,'\/')))/86400000)+1) : 1;
   const mKm    = mRides.reduce((s,r)=>s+(r.km||0),0);
 
   const totalWeeks = Math.max(1, totalDays/7);
@@ -1694,6 +1692,9 @@ function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+
+
 
 
 
