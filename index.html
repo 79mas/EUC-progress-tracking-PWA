@@ -265,7 +265,7 @@ input[type=number]{-moz-appearance:textfield}
 .hero-metric{flex:1;min-width:0}
 .hero-lbl{font-size:10px;color:var(--t2);font-family:var(--M);letter-spacing:1px;margin-bottom:2px;text-transform:uppercase}
 .hero-v{font-family:var(--M);font-size:34px;font-weight:600;color:var(--cyan);line-height:1;text-shadow:0 0 22px var(--cglow)}
-.hero-v.amber{color:var(--amber);text-shadow:0 0 22px rgba(255,184,0,.25)}
+.hero-v.secondary{color:var(--t1)}
 .hero-4{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--soft);padding-top:12px;gap:0}
 .h4{text-align:center;border-right:1px solid var(--soft);padding:0 3px}
 .h4:last-child{border-right:none}
@@ -300,6 +300,19 @@ input[type=number]{-moz-appearance:textfield}
 .mp-item.selected::after{content:'✓';color:var(--cyan);font-size:11px}
 .hero-tap{cursor:pointer;border-bottom:1px dashed var(--cyan);padding-bottom:1px;display:inline-block}
 .hero-tap::after{content:' ▾';font-size:12px;color:var(--cyan)}
+
+/* POPUP EDIT FIELDS */
+.pop-edit-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.pop-edit-label{font-family:var(--M);font-size:10px;color:var(--t3);letter-spacing:1px;text-transform:uppercase}
+.pop-edit-input{background:var(--bg);border:1px solid var(--soft);border-radius:8px;color:var(--t1);
+  font-family:var(--M);font-size:14px;padding:9px 12px;outline:none;width:100%;-webkit-appearance:none;color-scheme:dark}
+.pop-edit-input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px var(--cdim)}
+.pop-edit-textarea{resize:none;font-family:var(--F);font-size:14px;line-height:1.5;min-height:72px}
+.pop-section-label{font-family:var(--M);font-size:10px;color:var(--t3);letter-spacing:2px;
+  text-transform:uppercase;padding:8px 0 4px;border-top:1px solid var(--soft);margin-top:4px}
+/* MODEL MENU FIX — scrollable, max height */
+.model-pick-menu{max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+/* Tooltip persist fix */
 </style>
 </head>
 <body>
@@ -397,12 +410,12 @@ input[type=number]{-moz-appearance:textfield}
     <div class="hero">
       <div class="hero-2col">
         <div class="hero-metric" id="d-total-wrap">
-          <div class="hero-lbl">Total km · <span class="hero-tap" id="d-model-label" onclick="toggleModelMenu()">All models</span></div>
+          <div class="hero-lbl">Total km · <span class="hero-tap" id="d-model-label" onclick="toggleModelMenu()">All wheels</span></div>
           <div class="hero-v" id="d-total">—</div>
         </div>
         <div class="hero-metric">
           <div class="hero-lbl">This year</div>
-          <div class="hero-v amber" id="d-year">—</div>
+          <div class="hero-v secondary" id="d-year">—</div>
         </div>
       </div>
       <div class="hero-4">
@@ -422,7 +435,7 @@ input[type=number]{-moz-appearance:textfield}
     <div class="sl">THIS WEEK</div>
     <div class="card chart-card"><canvas id="chart-week" height="130"></canvas></div>
 
-    <div class="sl">ALL RIDES</div>
+    <div class="sl">ALL ENTRIES</div>
     <div class="card">
       <div class="col-toggles" id="col-toggles"></div>
       <div id="d-table"><p class="empty">No entries.</p></div>
@@ -436,7 +449,7 @@ input[type=number]{-moz-appearance:textfield}
       <div class="ph-title">New Entry</div>
     </div>
     <div class="fg">
-      <div class="fl">EUC Model</div>
+      <div class="fl">EUC Wheel</div>
       <div class="chips" id="model-chips"></div>
       <p class="fhint" id="odm-hint"></p>
     </div>
@@ -476,7 +489,7 @@ input[type=number]{-moz-appearance:textfield}
     <div class="sl">ADD NEW EUC</div>
     <div class="card">
       <div class="fg">
-        <div class="fl">Model Name</div>
+        <div class="fl">Wheel Name</div>
         <input type="text" id="g-name" class="fi" placeholder="e.g. Veteran Sherman S"/>
       </div>
       <div class="fg">
@@ -511,7 +524,7 @@ input[type=number]{-moz-appearance:textfield}
         <div class="mchks" id="f-models"></div>
       </div>
       <div class="fsummary">
-        <span id="f-summary" style="font-family:var(--M);font-size:10px;color:var(--t3)">All time · All models</span>
+        <span id="f-summary" style="font-family:var(--M);font-size:10px;color:var(--t3)">All time · All wheels</span>
         <button class="btn-ghost" id="btn-reset-f">Reset</button>
       </div>
     </div>
@@ -553,24 +566,7 @@ input[type=number]{-moz-appearance:textfield}
 
 <!-- RIDE POPUP -->
 <div id="popup-bg" class="popup-bg hidden">
-  <div class="popup">
-    <div class="pop-header">
-      <span id="pop-model" class="pop-model" style="font-size:17px;font-weight:700"></span>
-      <button class="pop-close-btn" id="pop-close">×</button>
-    </div>
-    <div class="pop-km" id="pop-km">—</div>
-    <div class="pop-date" id="pop-date">—</div>
-    <div id="pop-remarks" class="pop-remarks">—</div>
-    <div class="pop-stats">
-      <div class="pop-row"><span>ODM reading</span><strong id="pop-odm">—</strong></div>
-      <div class="pop-row"><span>From</span><strong id="pop-from">—</strong></div>
-      <div class="pop-row"><span>Model total</span><strong id="pop-total">—</strong></div>
-    </div>
-    <div class="pop-actions">
-      <button class="btn-del" id="pop-delete">Delete</button>
-      <button class="btn-edit-r" id="pop-edit">Edit remarks</button>
-    </div>
-  </div>
+  <div class="popup"></div>
 </div>
 
 <!-- CONFIRM DIALOG -->
@@ -587,6 +583,10 @@ input[type=number]{-moz-appearance:textfield}
 </div>
 
 <script>
+
+
+
+
 
 
 
@@ -612,7 +612,7 @@ const S = {
 const COLORS = ['#00e5ff','#ffb800','#00ff87','#ff4d6d','#a855f7','#f97316','#3b82f6','#84cc16'];
 const COL_DEFS = [
   { key:'date',    label:'Date'     },
-  { key:'model',   label:'Model'    },
+  { key:'model',   label:'Wheel'    },
   { key:'odm',     label:'ODM'      },
   { key:'km',      label:'Km'       },
   { key:'total',   label:'Total km' },
@@ -786,8 +786,8 @@ function renderDashboard() {
     <div class="lr-date">${fdate(last.date)} · ${last.date.slice(11,16)}</div>
     ${last.remarks?`<div style="font-size:13px;color:var(--t2);margin-top:6px">${last.remarks}</div>`:''}
     <div class="lr-row"><span>ODM</span><strong>${fmt(last.inputOdm,1)} km</strong></div>
-    <div class="lr-row"><span>Model total</span><strong>${fmt(last.totalKm,0)} km</strong></div>
-  `:'<p class="empty">No rides yet — add your first!</p>';
+    <div class="lr-row"><span>Wheel total</span><strong>${fmt(last.totalKm,0)} km</strong></div>
+  `:'<p class="empty">No entries yet — add your first!</p>';
 
   $('d-fleet').innerHTML=S.models.length?S.models.map(m=>{
     const rs=S.rides.filter(r=>r.model===m.name).sort((a,b)=>a.date.localeCompare(b.date));
@@ -797,7 +797,7 @@ function renderDashboard() {
     return `<div class="fc"><div class="fc-name">${m.name}</div>
       <div class="fc-km" style="color:${c}">${fmt(total,0)} km</div>
       <div class="fc-sub">${days?fmt(total/days,1):'—'} km/day</div></div>`;
-  }).join(''):'<p class="empty" style="grid-column:1/-1">No EUCs — add one in Garage.</p>';
+  }).join(''):'<p class="empty" style="grid-column:1/-1">No wheels — add one in Garage.</p>';
 
   // Week chart
   const wl=[],wd=[];
@@ -805,7 +805,7 @@ function renderDashboard() {
   for(let i=0;i<7;i++){
     const d=new Date(wBase); d.setDate(wBase.getDate()+i);
     const ds=d.toISOString().slice(0,10);
-    wl.push(d.toLocaleDateString('en-GB',{weekday:'short'}));
+    wl.push(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d.getDay()===0?6:d.getDay()-1]);
     wd.push(rides.filter(r=>r.date.startsWith(ds)).reduce((s,r)=>s+(r.km||0),0));
   }
   if(S.charts.week) S.charts.week.destroy();
@@ -888,7 +888,7 @@ function renderTable(){
 function renderEntry() {
   const chips=$('model-chips');
   if(!S.models.length){
-    chips.innerHTML='<span class="chip empty-chip">No EUCs — add one in Garage</span>';
+    chips.innerHTML='<span class="chip empty-chip">No wheels — add one in Garage</span>';
     $('odm-hint').textContent=''; return;
   }
   let active=S.lastModel&&S.models.find(m=>m.name===S.lastModel)?S.lastModel:S.models[0].name;
@@ -968,7 +968,7 @@ function renderGarage(){
       <div class="gmeta">Added ${fdate(m.dateAdded)} · ${rs.length} rides · start: ${fmt(m.startOdm,1)} km</div></div>
       <div class="gkm">${fmt(total,0)} km</div>
     </div>`;
-  }).join(''):'<div class="card"><p class="empty">No EUCs yet — add your first wheel above!</p></div>';
+  }).join(''):'<div class="card"><p class="empty">No wheels yet — add your first wheel above!</p></div>';
 }
 
 $('btn-add-euc').onclick=async()=>{
@@ -993,7 +993,7 @@ let FL={from:'',to:'',models:[]};
 
 function renderAnalytics(){
   const mc=$('f-models');
-  if(!S.models.length){ mc.innerHTML='<span style="font-size:13px;color:var(--t3)">No EUCs</span>'; }
+  if(!S.models.length){ mc.innerHTML='<span style="font-size:13px;color:var(--t3)">No wheels</span>'; }
   else {
     if(!FL.models.length) FL.models=S.models.map(m=>m.name);
     mc.innerHTML=S.models.map(m=>`
@@ -1019,7 +1019,7 @@ function applyFilters(){
   if(FL.to)   r=r.filter(x=>x.date.slice(0,10)<=FL.to);
   if(FL.models.length) r=r.filter(x=>FL.models.includes(x.model));
   r=r.sort((a,b)=>a.date.localeCompare(b.date));
-  const mStr=FL.models.length===S.models.length?'All models':FL.models.join(', ');
+  const mStr=FL.models.length===S.models.length?'All wheels':FL.models.join(', ');
   $('f-summary').textContent=`${FL.from?fdate(FL.from):'All time'} → ${FL.to?fdate(FL.to):'now'} · ${mStr}`;
   const total=r.reduce((s,x)=>s+(x.km||0),0), best=r.length?Math.max(...r.map(x=>x.km||0)):0;
   $('a-total').textContent=fmt(total,0); $('a-count').textContent=r.length;
@@ -1069,10 +1069,14 @@ function drawSea(rides,models){
       data:months.map((_,mi)=>rides.filter(r=>r.model===m&&parseInt(r.date.slice(5,7))-1===mi).reduce((s,r)=>s+(r.km||0),0)),
       backgroundColor:mcolor(m)+'bb',borderColor:mcolor(m),borderWidth:1,borderRadius:3}))},
     options:{...cOpts(),scales:{x:sOpts(),y:sOpts()},
-      plugins:{...cOpts().plugins,...(models.length>1?{tooltip:{mode:'index',intersect:false}}:{})}}});
+      plugins:{zoom:{zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"},pan:{enabled:true,mode:"x"}},
+zoom:{zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"x"},pan:{enabled:true,mode:"x"}},
+zoom:{zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:"xy"},pan:{enabled:true,mode:"xy"}},
+...cOpts().plugins,...(models.length>1?{tooltip:{mode:'index',intersect:false}}:{})}}});
 }
 
 function cOpts({legend=true}={}){
+  Chart.defaults.plugins.tooltip.enabled = true;
   return{responsive:true,maintainAspectRatio:true,interaction:{mode:'nearest',axis:'x',intersect:false},
     plugins:{
       legend:{display:legend,labels:{color:'#8888aa',font:{family:'JetBrains Mono',size:11},boxWidth:12,padding:10}},
@@ -1089,52 +1093,147 @@ function sOpts(){
 // ─── RIDE POPUP ───────────────────────────────────────
 function openRidePopup(ride){
   const bg=$('popup-bg');
-  bg.querySelector('#pop-model').textContent=ride.model;
-  bg.querySelector('#pop-model').style.color=mcolor(ride.model);
-  bg.querySelector('#pop-km').innerHTML=fmt(ride.km,1)+'<small> km</small>';
-  bg.querySelector('#pop-date').textContent=ride.date?ride.date.slice(0,16):'—';
-  bg.querySelector('#pop-remarks').textContent=ride.remarks||'—';
-  bg.querySelector('#pop-odm').textContent=fmt(ride.inputOdm,1)+' km';
-  bg.querySelector('#pop-total').textContent=fmt(ride.totalKm,1)+' km';
-  bg.querySelector('#pop-from').textContent=fmt(ride.fromKm,1)+' km';
   bg.classList.remove('hidden');
 
-  let editing=false;
-  const remEl=bg.querySelector('#pop-remarks');
-  const editBtn=bg.querySelector('#pop-edit');
-  editBtn.textContent='Edit remarks';
+  // Recalculate chain for a model after editing one entry
+  function recalcChain(model) {
+    const modelRides = S.rides
+      .filter(r=>r.model===model)
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    const mObj = S.models.find(m=>m.name===model);
+    const startOdm = mObj?.startOdm||0;
+    const firstDate = mObj?.dateAdded||modelRides[0]?.date.slice(0,10)||'';
+    modelRides.forEach((r, i) => {
+      r.fromKm  = i===0 ? startOdm : modelRides[i-1].inputOdm;
+      r.km      = Math.max(0, r.inputOdm - r.fromKm);
+      r.totalKm = r.inputOdm - startOdm;
+      const days = Math.max(1, Math.round((new Date(r.date.slice(0,10))-new Date(firstDate))/86400000)+1);
+      r.eucTime = days;
+      r.staVid  = r.totalKm / days;
+    });
+  }
 
-  editBtn.onclick=()=>{
-    if(!editing){
-      editing=true; remEl.contentEditable='true';
-      remEl.style.outline='1px solid var(--cyan)';
-      remEl.style.borderRadius='4px'; remEl.focus();
-      editBtn.textContent='Save';
-    } else {
-      const nr=remEl.textContent.trim();
-      remEl.contentEditable='false';
-      remEl.style.outline='';
-      editing=false; editBtn.textContent='Edit remarks';
-      if(nr!==ride.remarks){
-        ride.remarks=nr;
-        apiCall({action:'editRemarks',id:ride.id,remarks:nr})
-          .then(()=>toast('Saved ✓','ok'))
-          .catch(e=>toast('Error: '+e.message,'err'));
-        renderTable();
-      }
-    }
+  // Build popup content
+  const pop = bg.querySelector('.popup');
+  pop.innerHTML = `
+    <div class="pop-header">
+      <span style="font-size:17px;font-weight:700;color:${mcolor(ride.model)}">${ride.model}</span>
+      <button class="pop-close-btn" id="pop-close">×</button>
+    </div>
+    <div class="pop-section-label">Edit entry</div>
+    <div class="pop-edit-row">
+      <div class="pop-edit-label">Date & Time</div>
+      <input type="datetime-local" id="pop-date-input" class="pop-edit-input" value="${ride.date?ride.date.replace(' ','T').slice(0,16):''}"/>
+    </div>
+    <div class="pop-edit-row">
+      <div class="pop-edit-label">Odometer reading (km)</div>
+      <input type="number" id="pop-odm-input" class="pop-edit-input" inputmode="numeric" step="0.1" value="${ride.inputOdm||''}"/>
+    </div>
+    <div class="pop-edit-row">
+      <div class="pop-edit-label">Remarks</div>
+      <textarea id="pop-rem-input" class="pop-edit-input pop-edit-textarea">${ride.remarks||''}</textarea>
+    </div>
+    <div class="pop-section-label">Calculated</div>
+    <div class="pop-stats">
+      <div class="pop-row"><span>Trip distance</span><strong id="pop-km-calc">${fmt(ride.km,1)} km</strong></div>
+      <div class="pop-row"><span>Wheel total</span><strong id="pop-total-calc">${fmt(ride.totalKm,1)} km</strong></div>
+    </div>
+    <div class="pop-actions" style="margin-top:14px">
+      <button class="btn-del" id="pop-delete">Delete</button>
+      <button class="btn-edit-r" id="pop-save">Save changes</button>
+    </div>
+  `;
+
+  $('pop-close').onclick = () => bg.classList.add('hidden');
+  bg.onclick = (e) => { if(e.target===bg) bg.classList.add('hidden'); };
+
+  // Live preview of km when ODM changes
+  $('pop-odm-input').oninput = () => {
+    const newOdm = parseFloat($('pop-odm-input').value)||0;
+    const allSorted = S.rides.filter(r=>r.model===ride.model).sort((a,b)=>a.date.localeCompare(b.date));
+    const prev = allSorted.filter(r=>r.date<ride.date).slice(-1)[0];
+    const fromKm = prev ? prev.inputOdm : (S.models.find(m=>m.name===ride.model)?.startOdm||0);
+    $('pop-km-calc').textContent = fmt(Math.max(0,newOdm-fromKm),1)+' km';
   };
 
-  bg.querySelector('#pop-delete').onclick=()=>{
+  // Save
+  $('pop-save').onclick = async () => {
+    const newDate    = $('pop-date-input').value.replace('T',' ');
+    const newOdm     = parseFloat($('pop-odm-input').value);
+    const newRemarks = $('pop-rem-input').value.trim();
+
+    if(!newDate)            return toast('Date required','err');
+    if(!newOdm||isNaN(newOdm)) return toast('ODM required','err');
+
+    // Validate ODM in chain
+    const allSorted = S.rides.filter(r=>r.model===ride.model&&r.id!==ride.id).sort((a,b)=>a.date.localeCompare(b.date));
+    const prevR = allSorted.filter(r=>r.date<newDate).slice(-1)[0];
+    const nextR = allSorted.find(r=>r.date>newDate);
+    const minOdm = prevR ? prevR.inputOdm : (S.models.find(m=>m.name===ride.model)?.startOdm||0);
+    const maxOdm = nextR ? nextR.inputOdm : Infinity;
+    if(newOdm < minOdm) return toast('ODM must be ≥ '+fmt(minOdm,1)+' (previous entry)','err');
+    if(newOdm > maxOdm) return toast('ODM must be ≤ '+fmt(maxOdm,1)+' (next entry)','err');
+
+    // Apply changes
+    ride.date     = newDate;
+    ride.inputOdm = newOdm;
+    ride.remarks  = newRemarks;
+
+    // Recalculate entire chain for this model
+    recalcChain(ride.model);
+
+    const btn = $('pop-save');
+    btn.classList.add('loading');
+    try {
+      // Push edited entry + all later entries in chain to Sheets
+      const affected = S.rides
+        .filter(r=>r.model===ride.model && r.date>=ride.date)
+        .sort((a,b)=>a.date.localeCompare(b.date));
+      for (const r of affected) {
+        await apiCall({
+          action:'editEntry', id:r.id,
+          date:r.date, inputOdm:r.inputOdm,
+          fromKm:r.fromKm, toKm:r.inputOdm,
+          km:r.km, totalKm:r.totalKm,
+          eucTime:r.eucTime, staVid:r.staVid,
+          remarks:r.remarks,
+        });
+      }
+      bg.classList.add('hidden');
+      renderAll();
+      toast('Entry updated ✓','ok');
+    } catch(e){ toast('Save error: '+e.message,'err'); }
+    finally { btn.classList.remove('loading'); }
+  };
+
+  // Delete
+  $('pop-delete').onclick = () => {
     bg.classList.add('hidden');
-    openConfirm('Delete entry?',
+    openConfirm(
+      'Delete this entry?',
       ride.model+' · '+(ride.date?ride.date.slice(0,10):'')+' · +'+fmt(ride.km,1)+' km',
-      async()=>{
-        try{
-          await apiCall({action:'deleteRide',id:ride.id});
-          S.rides=S.rides.filter(r=>r.id!==ride.id);
-          renderAll(); toast('Entry deleted','ok');
-        }catch(e){toast('Error: '+e.message,'err');}
+      async () => {
+        try {
+          await apiCall({action:'deleteEntry', id:ride.id});
+          S.rides = S.rides.filter(r=>r.id!==ride.id);
+          // Recalc chain and push updated rows to Sheets
+          recalcChain(ride.model);
+          const affected = S.rides
+            .filter(r=>r.model===ride.model && r.date >= ride.date)
+            .sort((a,b)=>a.date.localeCompare(b.date));
+          for (const r of affected) {
+            await apiCall({
+              action:'editEntry', id:r.id,
+              date:r.date, inputOdm:r.inputOdm,
+              fromKm:r.fromKm, toKm:r.inputOdm,
+              km:r.km, totalKm:r.totalKm,
+              eucTime:r.eucTime, staVid:r.staVid,
+              remarks:r.remarks,
+            });
+          }
+          renderAll();
+          toast('Entry deleted ✓','ok');
+        } catch(e){ toast('Error: '+e.message,'err'); }
       }
     );
   };
@@ -1149,8 +1248,7 @@ function openConfirm(title,msg,onYes){
   bg.querySelector('#conf-no').onclick=()=>bg.classList.add('hidden');
 }
 
-$('pop-close').addEventListener('click',()=>$('popup-bg').classList.add('hidden'));
-$('popup-bg').addEventListener('click',e=>{if(e.target===$('popup-bg'))$('popup-bg').classList.add('hidden');});
+// popup close handlers are set dynamically in openRidePopup
 $('confirm-bg').addEventListener('click',e=>{if(e.target===$('confirm-bg'))$('confirm-bg').classList.add('hidden');});
 
 
@@ -1166,54 +1264,36 @@ function dashRides() {
 function renderModelPicker() {
   // Update hero label
   const labelEl = $('d-model-label');
-  if (labelEl) labelEl.textContent = DASH_MODEL === 'all' ? 'All models' : DASH_MODEL;
+  if (labelEl) labelEl.textContent = DASH_MODEL === 'all' ? 'All wheels' : DASH_MODEL;
 }
 
-function toggleModelMenu() {
+function toggleModelMenu(e) {
+  if (e) e.stopPropagation();
   let menu = $('model-pick-menu');
   if (menu) { menu.remove(); return; }
 
   menu = document.createElement('div');
   menu.id = 'model-pick-menu';
   menu.className = 'model-pick-menu';
+  // Position: fixed center-bottom for mobile reliability
+  menu.style.cssText = 'position:fixed;bottom:calc(var(--nav) + var(--safe) + 8px);left:50%;transform:translateX(-50%);z-index:800;min-width:220px;max-width:320px;width:90vw;';
 
-  // "All models" option
-  const allOpt = document.createElement('div');
-  allOpt.className = 'mp-item' + (DASH_MODEL==='all'?' selected':'');
-  allOpt.textContent = 'All models';
-  allOpt.onclick = (e) => {
-    e.stopPropagation();
-    DASH_MODEL = 'all';
-    localStorage.setItem('euc_dash_model', 'all');
-    menu.remove();
-    renderDashboard();
-  };
-  menu.appendChild(allOpt);
-
-  // Per-model options
-  S.models.forEach(m => {
+  const addOpt = (label, sublabel, key, selected) => {
     const item = document.createElement('div');
-    item.className = 'mp-item' + (DASH_MODEL===m.name?' selected':'');
-    const rs = S.rides.filter(r=>r.model===m.name);
-    const total = rs.reduce((s,r)=>s+(r.km||0),0);
-    item.innerHTML = m.name + '<span style="font-family:var(--M);font-size:11px;color:var(--t3)">' + fmt(total,0) + ' km</span>';
-    item.onclick = (e) => {
-      e.stopPropagation();
-      DASH_MODEL = m.name;
-      localStorage.setItem('euc_dash_model', m.name);
-      menu.remove();
-      renderDashboard();
-    };
+    item.className = 'mp-item' + (selected?' selected':'');
+    item.innerHTML = label + (sublabel?'<span style="font-family:var(--M);font-size:11px;color:var(--t3);margin-left:8px">'+sublabel+'</span>':'');
+    item.onclick = (ev) => { ev.stopPropagation(); DASH_MODEL=key; localStorage.setItem('euc_dash_model',key); menu.remove(); renderDashboard(); };
     menu.appendChild(item);
+  };
+
+  addOpt('All wheels', fmt(S.rides.reduce((s,r)=>s+(r.km||0),0),0)+' km', 'all', DASH_MODEL==='all');
+  S.models.forEach(m => {
+    const total = S.rides.filter(r=>r.model===m.name).reduce((s,r)=>s+(r.km||0),0);
+    addOpt(m.name, fmt(total,0)+' km', m.name, DASH_MODEL===m.name);
   });
 
-  const wrap = $('d-total-wrap');
-  wrap.style.position = 'relative';
-  wrap.appendChild(menu);
-  setTimeout(() => document.addEventListener('click', () => {
-    const m = $('model-pick-menu');
-    if (m) m.remove();
-  }, {once:true}), 10);
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', () => { const m=$('model-pick-menu'); if(m)m.remove(); }, {once:true}), 10);
 }
 
 // ─── AVG PICKER ────────────────────────────────────────
@@ -1333,6 +1413,23 @@ function closeAvgMenu() {
   if (m) m.remove();
 }
 
+
+// Fix tooltip persistence on mobile — dismiss on outside tap
+document.addEventListener('touchstart', (e) => {
+  if (!e.target.closest('canvas')) {
+    Object.values(S.charts).forEach(ch => {
+      if (ch && ch.tooltip) {
+        ch.tooltip.opacity = 0;
+        ch.update('none');
+      }
+    });
+  }
+}, { passive: true });
+
+
+// Register zoom plugin if available
+if (window.ChartZoom) Chart.register(window.ChartZoom);
+
 function renderAll(){
   renderDashboard();
   renderAvgWidget();
@@ -1351,6 +1448,10 @@ function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+
+
+
 
 
 
