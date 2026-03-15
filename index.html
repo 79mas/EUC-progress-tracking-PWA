@@ -298,8 +298,7 @@ input[type=number]{-moz-appearance:textfield}
 .mp-item:hover{background:var(--cdim);color:var(--t1)}
 .mp-item.selected{color:var(--cyan);font-weight:600}
 .mp-item.selected::after{content:'✓';color:var(--cyan);font-size:11px}
-.hero-tap{cursor:pointer;border-bottom:1px dashed var(--cyan);padding-bottom:1px;display:inline-block}
-.hero-tap::after{content:' ▾';font-size:12px;color:var(--cyan)}
+/* hero-tap removed — tap handled by parent div */
 
 /* POPUP EDIT FIELDS */
 .pop-edit-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
@@ -332,7 +331,7 @@ input[type=number]{-moz-appearance:textfield}
 .hero-lbl{transition:color .15s}
 .hero-lbl:hover{color:var(--cyan)}
 /* Model label in hero */
-#d-model-label{color:var(--cyan)}
+#d-total-lbl{color:var(--cyan)}
 </style>
 </head>
 <body>
@@ -430,7 +429,7 @@ input[type=number]{-moz-appearance:textfield}
     <div class="hero">
       <div class="hero-2col">
         <div class="hero-metric" id="d-total-wrap" style="position:relative;cursor:pointer" onclick="toggleModelMenu(event)">
-          <div class="hero-lbl">Total km · <span class="hero-tap" id="d-model-label" onclick="toggleModelMenu()">All wheels</span></div>
+          <div class="hero-lbl">Total km · <span id="d-total-lbl" style="color:var(--cyan)">All wheels ▾</span></div>
           <div class="hero-v" id="d-total">—</div>
         </div>
         <div class="hero-metric">
@@ -548,7 +547,7 @@ input[type=number]{-moz-appearance:textfield}
         <div class="fg" style="flex:1;margin-bottom:0"><div class="fl">To</div><input type="date" id="f-to" class="fi sm"/></div>
       </div>
       <div class="fg" style="margin-top:12px;margin-bottom:0">
-        <div class="fl">Models</div>
+        <div class="fl">Wheels</div>
         <div class="mchks" id="f-models"></div>
       </div>
       <div class="fsummary">
@@ -620,6 +619,8 @@ input[type=number]{-moz-appearance:textfield}
 </div>
 
 <script>
+
+
 
 
 
@@ -905,7 +906,15 @@ function sortedRides(){
     if(col==='date')   {va=a.date;vb=b.date;}
     else if(col==='model') {va=a.model;vb=b.model;}
     else if(col==='odm')   {va=a.inputOdm||0;vb=b.inputOdm||0;}
-    else if(col==='km')    {va=a.km||0;vb=b.km||0;}
+    else if(col==='km')    {
+      // sort by km/d (same formula as display)
+      const getKmd=(r)=>{
+        const p=S.rides.filter(x=>x.model===r.model&&x.date<r.date).sort((a,b)=>b.date.localeCompare(a.date))[0];
+        const d=p?Math.max(1,Math.round((safeDate(r.date)-safeDate(p.date))/86400000)):1;
+        return Math.round((r.km||0)/d);
+      };
+      va=getKmd(a); vb=getKmd(b);
+    }
     else if(col==='total') {va=a.totalKm||0;vb=b.totalKm||0;}
     else if(col==='remarks'){va=a.remarks||'';vb=b.remarks||'';}
     else {va=a.date;vb=b.date;}
@@ -933,7 +942,7 @@ function renderTable(){
         odm:    '<td class="r">'+fmt(r.inputOdm,1)+'</td>',
         km:(()=>{
           const prevE=S.rides.filter(x=>x.model===r.model&&x.date<r.date).sort((a,b)=>b.date.localeCompare(a.date))[0];
-          const daysDiff=prevE?Math.max(1,Math.round((new Date(r.date.slice(0,10))-new Date(prevE.date.slice(0,10)))/86400000)):1;
+          const daysDiff=prevE?Math.max(1,Math.round((safeDate(r.date)-safeDate(prevE.date))/86400000)):1;
           const kmd=Math.round((r.km||0)/daysDiff);
           return '<td class="r" style="color:var(--cyan);font-weight:700">'+kmd+'</td>';
         })(),
@@ -1144,7 +1153,8 @@ function openWheelPopup(name){
     const doSave=async()=>{
       const btn=$('pw-save'); if(btn) btn.classList.add('loading');
       try{
-        if(nameChanged) S.rides.filter(r=>r.model===m.name).forEach(r=>r.model=newName);
+        const originalName=m.name; // save before any mutation
+        if(nameChanged) S.rides.filter(r=>r.model===originalName).forEach(r=>r.model=newName);
         m.name=newName; m.startOdm=newOdm; m.dateAdded=newDate; m.color=newColor;
         if(needsRecalc){
           // recalcChain needs to be accessible — defined inside openRidePopup so copy here
@@ -1163,7 +1173,7 @@ function openWheelPopup(name){
               eucTime:r.eucTime,staVid:r.staVid,remarks:r.remarks});
           }
         }
-        await apiCall({action:'editWheel',name:m.name,oldName:nameChanged?newName:m.name,
+        await apiCall({action:'editWheel',name:m.name,oldName:originalName,
           startOdm:m.startOdm,dateAdded:m.dateAdded,color:m.color});
         bg.classList.add('hidden'); renderAll(); toast('Wheel updated ✓','ok');
       }catch(e){toast('Error: '+e.message,'err');}
@@ -1203,7 +1213,8 @@ $('btn-add-euc').onclick=async()=>{
   if(S.models.find(m=>m.name===name)) return toast('Model already exists','err');
   const btn=$('btn-add-euc'); btn.classList.add('loading');
   try {
-    await apiCall({action:'addModel',name,startOdm,dateAdded});
+    const color=$('g-color-val')?.value||COLORS[S.models.length%COLORS.length];
+    await apiCall({action:'addModel',name,startOdm,dateAdded,color});
     S.models.push({name,startOdm,dateAdded,color});
     toast(`${name} added ✓`,'ok');
     $('g-name').value=''; $('g-odm').value='';
@@ -1496,7 +1507,7 @@ function dashRides() {
 
 function renderModelPicker() {
   const lbl = $('d-total-lbl');
-  if (lbl) lbl.textContent = DASH_MODEL === 'all' ? 'All wheels ▾' : DASH_MODEL + ' ▾';
+  if (lbl) lbl.textContent = (DASH_MODEL === 'all' ? 'All wheels' : DASH_MODEL) + ' ▾';
 }
 
 function toggleModelMenu(e) {
@@ -1528,6 +1539,13 @@ function toggleModelMenu(e) {
   setTimeout(() => document.addEventListener('click', () => { const m=$('model-pick-menu'); if(m)m.remove(); }, {once:true}), 10);
 }
 
+
+function safeDate(s) {
+  if (!s) return new Date(0);
+  // Handle "2024-03-14 09:00" and "2024-03-14" formats
+  return new Date(s.slice(0,10).replace(/-/g,'/'));
+}
+
 // ─── AVG PICKER ────────────────────────────────────────
 const AVG_OPTIONS = [
   { group:'Daily',   key:'km_day_all',    label:'km/day · all time' },
@@ -1551,17 +1569,17 @@ function calcAvg(key) {
   const ys = yearStart(), ms = monthStart();
   const dates = rides.map(r=>r.date.slice(0,10)).sort();
   const firstDate = dates[0], lastDate = dates[dates.length-1];
-  const totalDays = Math.max(1, Math.round((new Date(lastDate.replace(/-/g,'/'))-new Date(firstDate.replace(/-/g,'\/')))/86400000)+1);
+  const totalDays = Math.max(1, Math.round((safeDate(lastDate)-safeDate(firstDate))/86400000)+1);
   const totalKm = rides.reduce((s,r)=>s+(r.km||0),0);
 
   const yRides = rides.filter(r=>r.date>=ys);
   const yDates = yRides.map(r=>r.date.slice(0,10)).sort();
-  const yDays  = yDates.length ? Math.max(1,Math.round((new Date(yDates[yDates.length-1].replace(/-/g,'/'))-new Date(yDates[0].replace(/-/g,'\/')))/86400000)+1) : 1;
+  const yDays  = yDates.length ? Math.max(1,Math.round((safeDate(yDates[yDates.length-1])-safeDate(yDates[0]))/86400000)+1) : 1;
   const yKm    = yRides.reduce((s,r)=>s+(r.km||0),0);
 
   const mRides = rides.filter(r=>r.date.slice(0,7)===ms.slice(0,7));
   const mDates = mRides.map(r=>r.date.slice(0,10)).sort();
-  const mDays  = mDates.length ? Math.max(1,Math.round((new Date(mDates[mDates.length-1].replace(/-/g,'/'))-new Date(mDates[0].replace(/-/g,'\/')))/86400000)+1) : 1;
+  const mDays  = mDates.length ? Math.max(1,Math.round((safeDate(mDates[mDates.length-1])-safeDate(mDates[0]))/86400000)+1) : 1;
   const mKm    = mRides.reduce((s,r)=>s+(r.km||0),0);
 
   const totalWeeks = Math.max(1, totalDays/7);
@@ -1692,6 +1710,8 @@ function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+
 
 
 
