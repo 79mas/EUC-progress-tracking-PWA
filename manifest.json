@@ -1,0 +1,20 @@
+{
+  "name": "EUC Tracker",
+  "short_name": "EUC Tracker",
+  "description": "Track your Electric Unicycle rides and statistics",
+  "start_url": "/EUC-progress-tracking-PWA/",
+  "scope": "/EUC-progress-tracking-PWA/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 56'><rect width='56' height='56' fill='%230a0a0f'/><circle cx='28' cy='28' r='26' stroke='%2300e5ff' stroke-width='2' fill='none' opacity='.3'/><circle cx='28' cy='28' r='18' stroke='%2300e5ff' stroke-width='1.5' fill='none'/><circle cx='28' cy='28' r='6' fill='%2300e5ff'/><line x1='28' y1='4' x2='28' y2='18' stroke='%2300e5ff' stroke-width='2' stroke-linecap='round'/><line x1='28' y1='38' x2='28' y2='52' stroke='%2300e5ff' stroke-width='2' stroke-linecap='round'/></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "health", "utilities"]
+}
